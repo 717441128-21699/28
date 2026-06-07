@@ -1,21 +1,99 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, Button } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import styles from './index.module.scss';
-import { mockDashboard, mockPredictions } from '@/data/orders';
+import { useUserStore } from '@/store/user';
+import { adminApi } from '@/utils/api';
+import { DashboardData, PredictionData, Dispute } from '@/types';
 import { formatMoney } from '@/utils/format';
 import classnames from 'classnames';
 
+const mockPredictions: PredictionData = {
+  hotModels: [
+    { model: '特斯拉 Model 3', trend: 15, score: 98 },
+    { model: '比亚迪 汉EV', trend: 12, score: 95 },
+    { model: '宝马 3系', trend: 8, score: 90 },
+    { model: '奔驰 C级', trend: 5, score: 85 },
+    { model: '奥迪 A4L', trend: 3, score: 82 }
+  ],
+  priceTrend: [
+    { month: '1月', price: 15.2 },
+    { month: '2月', price: 15.5 },
+    { month: '3月', price: 15.8 },
+    { month: '4月', price: 16.0 },
+    { month: '5月', price: 16.2 },
+    { month: '6月', price: 16.3 }
+  ]
+};
+
+const defaultDashboard: DashboardData = {
+  totalCars: 0,
+  dailyDeals: 0,
+  dailyDealsTrend: [0, 0, 0, 0, 0, 0, 0],
+  totalLoans: 0,
+  totalLoanAmount: 0,
+  insurancePayoutRate: 0,
+  csAverageTime: 0,
+  brandStats: [],
+  cityStats: []
+};
+
 const AdminPage: React.FC = () => {
-  const data = mockDashboard;
+  const { isLoggedIn, user } = useUserStore();
+  const [data, setData] = useState<DashboardData>(defaultDashboard);
+  const [pendingDisputes, setPendingDisputes] = useState<Dispute[]>([]);
   const predictions = mockPredictions;
+  const [loading, setLoading] = useState(false);
 
-  const maxDeals = Math.max(...data.dailyDealsTrend);
-  const maxBrandRevenue = Math.max(...data.brandStats.map(b => b.revenue));
-  const maxCityCount = Math.max(...data.cityStats.map(c => c.count));
+  useEffect(() => {
+    if (!isLoggedIn) {
+      Taro.showToast({ title: '请先登录', icon: 'none' });
+      setTimeout(() => {
+        Taro.navigateTo({ url: '/pages/login/index' });
+      }, 1000);
+      return;
+    }
+    loadData();
+  }, [isLoggedIn]);
 
-  const handleExport = () => {
-    Taro.showToast({ title: '报表已生成，正在下载...', icon: 'none' });
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [dashboardRes, disputesRes] = await Promise.all([
+        adminApi.dashboard(),
+        adminApi.pendingDisputes()
+      ]);
+      if (dashboardRes.code === 0 && dashboardRes.data) {
+        setData(dashboardRes.data);
+      }
+      if (disputesRes.code === 0 && disputesRes.data) {
+        setPendingDisputes(disputesRes.data);
+      }
+    } catch (e: any) {
+      Taro.showToast({ title: e.message || '加载失败', icon: 'none' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const maxDeals = Math.max(...(data.dailyDealsTrend || [0]));
+  const maxBrandRevenue = Math.max(...(data.brandStats || []).map(b => b.revenue), 1);
+  const maxCityCount = Math.max(...(data.cityStats || []).map(c => c.count), 1);
+
+  const handleExport = async () => {
+    try {
+      Taro.showLoading({ title: '生成报表中...' });
+      const res = await adminApi.report();
+      Taro.hideLoading();
+      if (res.code === 0) {
+        Taro.showToast({ title: '报表已生成，正在下载...', icon: 'none' });
+      } else {
+        Taro.showToast({ title: res.message || '生成失败', icon: 'none' });
+      }
+    } catch (e: any) {
+      Taro.hideLoading();
+      Taro.showToast({ title: e.message || '生成失败', icon: 'none' });
+    }
   };
 
   return (
@@ -78,6 +156,23 @@ const AdminPage: React.FC = () => {
         </View>
       </View>
 
+      {pendingDisputes.length > 0 && (
+        <View className={styles.chartCard}>
+          <View className={styles.sectionHeader}>
+            <Text className={styles.sectionTitle}>⚠️ 待处理纠纷 ({pendingDisputes.length})</Text>
+            <Text className={styles.moreBtn}>全部处理 →</Text>
+          </View>
+          {pendingDisputes.slice(0, 3).map(dispute => (
+            <View key={dispute.id} className={styles.predictionItem}>
+              <View className={styles.predictionRank}>!</View>
+              <Text className={styles.predictionModel}>工单 {dispute.id.toUpperCase()}</Text>
+              <Text className={styles.predictionTrend}>{dispute.reason.slice(0, 20)}...</Text>
+              <View className={styles.predictionScore}>待受理</View>
+            </View>
+          ))}
+        </View>
+      )}
+
       <View className={styles.chartCard}>
         <View className={styles.sectionHeader}>
           <Text className={styles.sectionTitle}>📈 近7日交易趋势</Text>
@@ -86,7 +181,7 @@ const AdminPage: React.FC = () => {
         <View className={styles.barChart}>
           {data.dailyDealsTrend.map((val, i) => {
             const days = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
-            const height = (val / maxDeals) * 100;
+            const height = maxDeals > 0 ? (val / maxDeals) * 100 : 0;
             return (
               <View key={i} className={styles.barItem}>
                 <View className={styles.barFill} style={{ height: `${height}%` }}>

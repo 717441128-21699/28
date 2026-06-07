@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, Input, Textarea, Image, Button } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import styles from './index.module.scss';
-import { mockDisputes } from '@/data/orders';
+import { useUserStore } from '@/store/user';
+import { disputeApi } from '@/utils/api';
+import { Dispute } from '@/types';
 import classnames from 'classnames';
 
 const tabs = [
@@ -13,12 +15,35 @@ const tabs = [
 ];
 
 const DisputePage: React.FC = () => {
+  const { isLoggedIn } = useUserStore();
   const [activeTab, setActiveTab] = useState('all');
   const [form, setForm] = useState({
     orderId: '',
     reason: ''
   });
   const [evidences, setEvidences] = useState<string[]>([]);
+  const [disputes, setDisputes] = useState<Dispute[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    loadDisputes();
+  }, [isLoggedIn, activeTab]);
+
+  const loadDisputes = async () => {
+    if (!isLoggedIn) return;
+    try {
+      setLoading(true);
+      const status = activeTab === 'all' ? undefined : activeTab;
+      const res = await disputeApi.list(status);
+      if (res.code === 0 && res.data) {
+        setDisputes(res.data);
+      }
+    } catch (e: any) {
+      Taro.showToast({ title: e.message || '加载失败', icon: 'none' });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleUpload = () => {
     Taro.chooseImage({
@@ -29,7 +54,14 @@ const DisputePage: React.FC = () => {
     });
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    if (!isLoggedIn) {
+      Taro.showToast({ title: '请先登录', icon: 'none' });
+      setTimeout(() => {
+        Taro.navigateTo({ url: '/pages/login/index' });
+      }, 1000);
+      return;
+    }
     if (!form.orderId) {
       Taro.showToast({ title: '请输入订单号', icon: 'none' });
       return;
@@ -41,9 +73,28 @@ const DisputePage: React.FC = () => {
     Taro.showModal({
       title: '确认提交',
       content: '提交后客服将在24小时内与您联系，请保持电话畅通。',
-      success: (res) => {
+      success: async (res) => {
         if (res.confirm) {
-          Taro.showToast({ title: '工单已生成', icon: 'success' });
+          try {
+            setLoading(true);
+            const submitRes = await disputeApi.create({
+              orderId: form.orderId,
+              reason: form.reason,
+              evidence: evidences
+            });
+            if (submitRes.code === 0) {
+              Taro.showToast({ title: '工单已生成', icon: 'success' });
+              loadDisputes();
+              setForm({ orderId: '', reason: '' });
+              setEvidences([]);
+            } else {
+              Taro.showToast({ title: submitRes.message || '提交失败', icon: 'none' });
+            }
+          } catch (e: any) {
+            Taro.showToast({ title: e.message || '提交失败', icon: 'none' });
+          } finally {
+            setLoading(false);
+          }
         }
       }
     });
@@ -61,8 +112,8 @@ const DisputePage: React.FC = () => {
   };
 
   const filteredDisputes = activeTab === 'all'
-    ? mockDisputes
-    : mockDisputes.filter(d => d.status === activeTab || (activeTab === 'reviewing' && d.status === 'escalated'));
+    ? disputes
+    : disputes.filter(d => d.status === activeTab || (activeTab === 'reviewing' && d.status === 'escalated'));
 
   return (
     <View className={styles.page}>
@@ -97,7 +148,7 @@ const DisputePage: React.FC = () => {
                 <Text className={styles.reasonLabel}>纠纷原因</Text>
                 <Text className={styles.reasonText}>{dispute.reason}</Text>
               </View>
-              {dispute.evidence.length > 0 && (
+              {dispute.evidence && dispute.evidence.length > 0 && (
                 <View className={styles.evidenceRow}>
                   <Text className={styles.evidenceLabel}>证据图片</Text>
                   <View className={styles.evidenceImages}>

@@ -2,30 +2,62 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, Image, Swiper, SwiperItem, Button } from '@tarojs/components';
 import Taro, { useRouter } from '@tarojs/taro';
 import styles from './index.module.scss';
-import { mockCars } from '@/data/cars';
+import { carApi } from '@/utils/api';
+import { useUserStore } from '@/store/user';
 import { Car } from '@/types';
 import { formatPrice, formatMileage, formatDate } from '@/utils/format';
 import classnames from 'classnames';
 
 const DetailPage: React.FC = () => {
   const router = useRouter();
-  const [car, setCar] = useState<Car | null>(null);
+  const { isLoggedIn } = useUserStore();
+  const [car, setCar] = useState<(Car & { seller: any; report: any }) | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const id = router.params.id;
     console.log('[DetailPage] Car id:', id);
-    const found = mockCars.find(c => c.id === id) || mockCars[0];
-    setCar(found);
+    loadDetail(id as string);
   }, [router.params.id]);
+
+  const loadDetail = async (id: string) => {
+    try {
+      setLoading(true);
+      const res = await carApi.detail(id);
+      if (res.code === 0 && res.data) {
+        setCar(res.data);
+      } else {
+        Taro.showToast({ title: res.message || '加载失败', icon: 'none' });
+      }
+    } catch (e: any) {
+      Taro.showToast({ title: e.message || '加载失败', icon: 'none' });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleAppointment = () => {
     if (!car) return;
+    if (!isLoggedIn) {
+      Taro.showToast({ title: '请先登录', icon: 'none' });
+      setTimeout(() => {
+        Taro.navigateTo({ url: '/pages/login/index' });
+      }, 1000);
+      return;
+    }
     console.log('[DetailPage] Make appointment:', car.id);
     Taro.navigateTo({ url: `/pages/appointment/index?carId=${car.id}` });
   };
 
   const handleBuy = () => {
     if (!car) return;
+    if (!isLoggedIn) {
+      Taro.showToast({ title: '请先登录', icon: 'none' });
+      setTimeout(() => {
+        Taro.navigateTo({ url: '/pages/login/index' });
+      }, 1000);
+      return;
+    }
     console.log('[DetailPage] Buy now:', car.id);
     Taro.navigateTo({ url: `/pages/deposit/index?carId=${car.id}` });
   };
@@ -35,6 +67,13 @@ const DetailPage: React.FC = () => {
   };
 
   const handleTransfer = () => {
+    if (!isLoggedIn) {
+      Taro.showToast({ title: '请先登录', icon: 'none' });
+      setTimeout(() => {
+        Taro.navigateTo({ url: '/pages/login/index' });
+      }, 1000);
+      return;
+    }
     Taro.navigateTo({ url: '/pages/transfer/index' });
   };
 
@@ -112,7 +151,7 @@ const DetailPage: React.FC = () => {
             <Text className={styles.scoreLabel}>综合评分</Text>
           </View>
           <Text className={styles.scoreDesc}>
-            经过专业检测师{item.name}全面检测，该车况整体良好，各项指标均符合标准，可放心购买。
+            经过专业检测师全面检测，该车况整体良好，各项指标均符合标准，可放心购买。
           </Text>
         </View>
         <View className={styles.inspectionItems}>

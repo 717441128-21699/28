@@ -1,49 +1,145 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, Image, Input, Button } from '@tarojs/components';
-import Taro from '@tarojs/taro';
+import Taro, { useRouter } from '@tarojs/taro';
 import styles from './index.module.scss';
-import { mockCars, mockAppointments } from '@/data/orders';
+import { transactionApi, carApi } from '@/utils/api';
+import { useUserStore } from '@/store/user';
+import { Appointment, Car } from '@/types';
 import { formatDateTime, formatPrice } from '@/utils/format';
 import classnames from 'classnames';
 
 const AppointmentPage: React.FC = () => {
+  const router = useRouter();
+  const { isLoggedIn, user } = useUserStore();
+  const carId = router.params.carId as string;
   const [form, setForm] = useState({
     date: '2026-06-10',
     time: '14:00',
     location: '北京市朝阳区车易拍线下服务中心',
-    name: '车友小王',
-    phone: '138****8888'
+    name: '',
+    phone: ''
   });
-  const [showList, setShowList] = useState(true);
+  const [showList, setShowList] = useState(!carId);
+  const [car, setCar] = useState<Car | null>(null);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  const car = mockCars[0];
   const timeSlots = ['09:00', '10:30', '14:00', '15:30', '17:00'];
+
+  useEffect(() => {
+    if (user) {
+      setForm(prev => ({ ...prev, name: user.nickname, phone: user.phone }));
+    }
+    if (carId) {
+      loadCarDetail();
+    }
+    loadAppointments();
+  }, [carId, isLoggedIn, user]);
+
+  const loadCarDetail = async () => {
+    try {
+      const res = await carApi.detail(carId);
+      if (res.code === 0 && res.data) {
+        setCar(res.data);
+      }
+    } catch (e: any) {
+      Taro.showToast({ title: e.message || '加载失败', icon: 'none' });
+    }
+  };
+
+  const loadAppointments = async () => {
+    if (!isLoggedIn) return;
+    try {
+      setLoading(true);
+      const res = await transactionApi.appointments('buyer');
+      if (res.code === 0 && res.data) {
+        setAppointments(res.data);
+      }
+    } catch (e: any) {
+      Taro.showToast({ title: e.message || '加载失败', icon: 'none' });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleTimeSelect = (time: string) => {
     setForm(prev => ({ ...prev, time }));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    if (!isLoggedIn) {
+      Taro.showToast({ title: '请先登录', icon: 'none' });
+      setTimeout(() => {
+        Taro.navigateTo({ url: '/pages/login/index' });
+      }, 1000);
+      return;
+    }
+    if (!carId) {
+      Taro.showToast({ title: '参数错误', icon: 'none' });
+      return;
+    }
     console.log('[AppointmentPage] Submit appointment:', form);
     Taro.showModal({
       title: '确认预约',
       content: `您确定要在${form.date} ${form.time}预约看车吗？`,
-      success: (res) => {
+      success: async (res) => {
         if (res.confirm) {
-          Taro.showToast({ title: '预约成功，等待卖家确认', icon: 'success' });
+          try {
+            setLoading(true);
+            const createRes = await transactionApi.createAppointment({
+              carId,
+              time: `${form.date} ${form.time}`,
+              location: form.location
+            });
+            if (createRes.code === 0) {
+              Taro.showToast({ title: '预约成功，等待卖家确认', icon: 'success' });
+              setShowList(true);
+              loadAppointments();
+            } else {
+              Taro.showToast({ title: createRes.message || '预约失败', icon: 'none' });
+            }
+          } catch (e: any) {
+            Taro.showToast({ title: e.message || '预约失败', icon: 'none' });
+          } finally {
+            setLoading(false);
+          }
         }
       }
     });
   };
 
-  const handleConfirm = (id: string) => {
+  const handleConfirm = async (id: string) => {
     console.log('[AppointmentPage] Confirm appointment:', id);
-    Taro.showToast({ title: '已确认预约', icon: 'success' });
+    try {
+      const res = await transactionApi.confirmAppointment(id, true);
+      if (res.code === 0) {
+        Taro.showToast({ title: '已确认预约', icon: 'success' });
+        loadAppointments();
+      } else {
+        Taro.showToast({ title: res.message || '操作失败', icon: 'none' });
+      }
+    } catch (e: any) {
+      Taro.showToast({ title: e.message || '操作失败', icon: 'none' });
+    }
   };
 
-  const handleIntent = (id: string, intent: boolean) => {
+  const handleIntent = async (id: string, intent: boolean) => {
     console.log('[AppointmentPage] Buyer intent:', id, intent);
-    Taro.showToast({ title: intent ? '已提交购买意向' : '已反馈', icon: 'success' });
+    try {
+      if (intent) {
+        const res = await transactionApi.buyerIntent(id);
+        if (res.code === 0) {
+          Taro.showToast({ title: '已提交购买意向', icon: 'success' });
+          loadAppointments();
+        } else {
+          Taro.showToast({ title: res.message || '操作失败', icon: 'none' });
+        }
+      } else {
+        Taro.showToast({ title: '已反馈', icon: 'success' });
+      }
+    } catch (e: any) {
+      Taro.showToast({ title: e.message || '操作失败', icon: 'none' });
+    }
   };
 
   const getStatusClass = (status: string) => {
@@ -69,13 +165,15 @@ const AppointmentPage: React.FC = () => {
     <View className={styles.page}>
       {!showList ? (
         <>
-          <View className={styles.carInfo}>
-            <Image className={styles.carImage} src={car.images[0]} mode='aspectFill' />
-            <View className={styles.carDetail}>
-              <Text className={styles.carTitle}>{car.title}</Text>
-              <Text className={styles.carPrice}>{formatPrice(car.price)}</Text>
+          {car && (
+            <View className={styles.carInfo}>
+              <Image className={styles.carImage} src={car.images[0]} mode='aspectFill' />
+              <View className={styles.carDetail}>
+                <Text className={styles.carTitle}>{car.title}</Text>
+                <Text className={styles.carPrice}>{formatPrice(car.price)}</Text>
+              </View>
             </View>
-          </View>
+          )}
 
           <View className={styles.formCard}>
             <Text className={styles.sectionTitle}>📅 选择时间</Text>
@@ -138,7 +236,7 @@ const AppointmentPage: React.FC = () => {
         </>
       ) : (
         <View className={styles.appointmentList}>
-          {mockAppointments.map(apt => (
+          {appointments.map(apt => (
             <View key={apt.id} className={styles.appointmentCard}>
               <View className={styles.appointmentHeader}>
                 <Text className={styles.sectionTitle}>

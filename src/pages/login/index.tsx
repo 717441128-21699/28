@@ -6,7 +6,7 @@ import { useUserStore } from '@/store/user';
 import classnames from 'classnames';
 
 const LoginPage: React.FC = () => {
-  const { setUser } = useUserStore();
+  const { login, register, loading } = useUserStore();
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [form, setForm] = useState({
     phone: '',
@@ -34,7 +34,7 @@ const LoginPage: React.FC = () => {
     Taro.showToast({ title: '验证码已发送', icon: 'success' });
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!agreed) {
       Taro.showToast({ title: '请先同意用户协议', icon: 'none' });
       return;
@@ -48,34 +48,49 @@ const LoginPage: React.FC = () => {
       return;
     }
 
-    Taro.showLoading({ title: mode === 'login' ? '登录中...' : '注册中...' });
-    setTimeout(() => {
-      Taro.hideLoading();
-      setUser();
-      Taro.showToast({
-        title: mode === 'login' ? '登录成功' : '注册成功',
-        icon: 'success'
-      });
-      setTimeout(() => {
-        Taro.switchTab({ url: '/pages/home/index' });
-      }, 1000);
-    }, 800);
+    try {
+      let success = false;
+      if (mode === 'login') {
+        success = await login(form.phone, form.code);
+      } else {
+        if (!form.nickname) {
+          Taro.showToast({ title: '请输入昵称', icon: 'none' });
+          return;
+        }
+        success = await register(form.phone, form.code, form.nickname);
+      }
+      if (success) {
+        Taro.showToast({
+          title: mode === 'login' ? '登录成功' : '注册成功',
+          icon: 'success'
+        });
+        setTimeout(() => {
+          Taro.switchTab({ url: '/pages/home/index' });
+        }, 1000);
+      }
+    } catch (e: any) {
+      Taro.showToast({ title: e.message || '操作失败', icon: 'none' });
+    }
   };
 
-  const handleThirdParty = (type: string) => {
+  const handleThirdParty = async (type: string) => {
     if (!agreed) {
       Taro.showToast({ title: '请先同意用户协议', icon: 'none' });
       return;
     }
     Taro.showLoading({ title: `${type}登录中...` });
-    setTimeout(() => {
+    try {
+      const success = await login('13800138000', '123456');
       Taro.hideLoading();
-      setUser();
-      Taro.showToast({ title: '登录成功', icon: 'success' });
-      setTimeout(() => {
-        Taro.switchTab({ url: '/pages/home/index' });
-      }, 1000);
-    }, 800);
+      if (success) {
+        Taro.showToast({ title: '登录成功', icon: 'success' });
+        setTimeout(() => {
+          Taro.switchTab({ url: '/pages/home/index' });
+        }, 1000);
+      }
+    } catch (e) {
+      Taro.hideLoading();
+    }
   };
 
   return (
@@ -181,6 +196,7 @@ const LoginPage: React.FC = () => {
         <Button
           className={classnames(styles.submitBtn, !agreed && styles.disabled)}
           onClick={handleSubmit}
+          loading={loading}
         >
           {mode === 'login' ? '登录' : '注册并登录'}
         </Button>

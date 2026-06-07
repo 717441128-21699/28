@@ -1,7 +1,10 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, Image } from '@tarojs/components';
+import Taro from '@tarojs/taro';
 import styles from './index.module.scss';
 import { useUserStore } from '@/store/user';
+import { userApi } from '@/utils/api';
+import { User, VipInfo } from '@/types';
 import classnames from 'classnames';
 
 const levels = [
@@ -87,11 +90,57 @@ const expHistory = [
   { id: 4, title: '完成买家身份认证', time: '2026-05-28 11:15', exp: 200 }
 ];
 
-const VipPage: React.FC = () => {
-  const { getUser } = useUserStore();
-  const user = getUser();
-  const { vip } = user;
+const defaultVip: VipInfo = {
+  level: 'normal',
+  levelName: '普通',
+  currentExp: 0,
+  nextLevelExp: 1000,
+  benefits: []
+};
 
+const defaultUser: User = {
+  id: '',
+  phone: '',
+  nickname: '未登录',
+  avatar: '',
+  creditScore: 700,
+  vip: defaultVip,
+  totalDeals: 0,
+  totalSpent: 0
+};
+
+const VipPage: React.FC = () => {
+  const { isLoggedIn, user: storeUser, fetchProfile } = useUserStore();
+  const [user, setUser] = useState<User>(defaultUser);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    loadProfile();
+  }, [isLoggedIn, storeUser]);
+
+  const loadProfile = async () => {
+    if (!isLoggedIn) {
+      setUser(defaultUser);
+      return;
+    }
+    if (storeUser) {
+      setUser(storeUser);
+      return;
+    }
+    try {
+      setLoading(true);
+      const res = await userApi.profile();
+      if (res.code === 0 && res.data) {
+        setUser(res.data);
+      }
+    } catch (e: any) {
+      Taro.showToast({ title: e.message || '加载失败', icon: 'none' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const vip = user.vip || defaultVip;
   const levelOrder = ['normal', 'silver', 'gold', 'diamond'];
   const currentLevelIndex = levelOrder.indexOf(vip.level);
   const progress = vip.nextLevelExp > 0
@@ -112,7 +161,7 @@ const VipPage: React.FC = () => {
           <Text className={styles.levelName}>{vip.levelName}会员</Text>
         </View>
         <View className={styles.userInfo}>
-          <Image className={styles.avatar} src={user.avatar} mode='aspectFill' />
+          <Image className={styles.avatar} src={user.avatar || 'https://picsum.photos/id/1005/100/100'} mode='aspectFill' />
           <View className={styles.userText}>
             <Text className={styles.nickname}>{user.nickname}</Text>
             <Text className={styles.userDesc}>

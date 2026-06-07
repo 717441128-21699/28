@@ -1,44 +1,77 @@
-import { User } from '@/types';
+import { create } from 'zustand';
+import Taro from '@tarojs/taro';
+import { User, VipInfo } from '@/types';
+import { userApi } from '@/utils/api';
+import { setToken, clearToken } from '@/utils/request';
 
-const defaultUser: User = {
-  id: 'u001',
-  phone: '138****8888',
-  nickname: '车友小王',
-  avatar: 'https://picsum.photos/id/64/200/200',
-  creditScore: 720,
-  vip: {
-    level: 'gold',
-    levelName: '金卡会员',
-    currentExp: 2800,
-    nextLevelExp: 5000,
-    benefits: ['免费车况检测2次/月', '优先推荐车源', '佣金8折', '专属客服']
+interface UserState {
+  user: User | null;
+  isLoggedIn: boolean;
+  loading: boolean;
+
+  login: (phone: string, code: string) => Promise<boolean>;
+  register: (phone: string, code: string, nickname: string) => Promise<boolean>;
+  fetchProfile: () => Promise<void>;
+  logout: () => void;
+  setUser: (user: User) => void;
+}
+
+export const useUserStore = create<UserState>((set, get) => ({
+  user: null,
+  isLoggedIn: !!Taro.getStorageSync('token'),
+  loading: false,
+
+  login: async (phone, code) => {
+    set({ loading: true });
+    try {
+      const res = await userApi.login({ phone, code });
+      if (res.code === 0 && res.data) {
+        setToken(res.data.token);
+        set({ user: res.data.user, isLoggedIn: true, loading: false });
+        return true;
+      }
+      Taro.showToast({ title: res.message || '登录失败', icon: 'none' });
+      set({ loading: false });
+      return false;
+    } catch (e) {
+      set({ loading: false });
+      return false;
+    }
   },
-  totalDeals: 23,
-  totalSpent: 456800
-};
 
-export const useUserStore = () => {
-  const getUser = (): User => {
-    return defaultUser;
-  };
+  register: async (phone, code, nickname) => {
+    set({ loading: true });
+    try {
+      const res = await userApi.register({ phone, code, nickname });
+      if (res.code === 0 && res.data) {
+        setToken(res.data.token);
+        set({ user: res.data.user, isLoggedIn: true, loading: false });
+        return true;
+      }
+      Taro.showToast({ title: res.message || '注册失败', icon: 'none' });
+      set({ loading: false });
+      return false;
+    } catch (e) {
+      set({ loading: false });
+      return false;
+    }
+  },
 
-  const isVip = (): boolean => {
-    return defaultUser.vip.level !== 'normal';
-  };
+  fetchProfile: async () => {
+    if (!get().isLoggedIn) return;
+    try {
+      const res = await userApi.profile();
+      if (res.code === 0 && res.data) {
+        set({ user: res.data });
+      }
+    } catch (e) {}
+  },
 
-  const getLevelColor = (): string => {
-    const colorMap: Record<string, string> = {
-      normal: '#86909C',
-      silver: '#A8B5C7',
-      gold: '#D4A017',
-      diamond: '#8B5CF6'
-    };
-    return colorMap[defaultUser.vip.level] || '#86909C';
-  };
+  logout: () => {
+    clearToken();
+    set({ user: null, isLoggedIn: false });
+    Taro.showToast({ title: '已退出登录', icon: 'success' });
+  },
 
-  return {
-    getUser,
-    isVip,
-    getLevelColor
-  };
-};
+  setUser: (user) => set({ user }),
+}));

@@ -29,12 +29,16 @@ const CarCard: React.FC<CarCardProps> = ({ car }) => {
     return '';
   };
 
+  const images = Array.isArray(car.images) ? car.images : (typeof car.images === 'string' ? JSON.parse(car.images) : []);
+  const tags = Array.isArray(car.tags) ? car.tags : (typeof car.tags === 'string' ? JSON.parse(car.tags) : []);
+  const publishTime = car.publishTime || car.createdAt || '';
+
   return (
     <View className={styles.card} onClick={handleClick}>
       <View className={styles.imageWrap}>
         <Image
           className={styles.carImage}
-          src={car.images[0]}
+          src={images[0] || ''}
           mode='aspectFill'
           onError={(e) => console.error('[CarCard] Image load error:', e)}
         />
@@ -44,7 +48,7 @@ const CarCard: React.FC<CarCardProps> = ({ car }) => {
           </View>
         )}
         <View className={styles.tagsWrap}>
-          {car.tags.slice(0, 3).map((tag, index) => (
+          {tags.slice(0, 3).map((tag, index) => (
             <View key={index} className={styles.tag}>{tag}</View>
           ))}
         </View>
@@ -67,7 +71,7 @@ const CarCard: React.FC<CarCardProps> = ({ car }) => {
               新车 {formatPrice(car.originalPrice)}
             </Text>
           </View>
-          <Text className={styles.location}>{car.location} · {relativeTime(car.publishTime)}</Text>
+          <Text className={styles.location}>{car.location} · {relativeTime(publishTime)}</Text>
         </View>
       </View>
     </View>

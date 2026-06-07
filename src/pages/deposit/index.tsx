@@ -1,17 +1,63 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, Image, Button } from '@tarojs/components';
-import Taro from '@tarojs/taro';
+import Taro, { useRouter } from '@tarojs/taro';
 import styles from './index.module.scss';
-import { mockOrders, mockCars } from '@/data/orders';
+import { transactionApi, carApi } from '@/utils/api';
+import { useUserStore } from '@/store/user';
+import { Order, Car } from '@/types';
 import { formatPrice, formatDate } from '@/utils/format';
 import classnames from 'classnames';
 
 const DepositPage: React.FC = () => {
+  const router = useRouter();
+  const { isLoggedIn } = useUserStore();
+  const carId = router.params.carId as string;
   const [agreed, setAgreed] = useState(false);
-  const order = mockOrders[0];
-  const car = mockCars.find(c => c.id === order.carId) || mockCars[0];
+  const [order, setOrder] = useState<Order | null>(null);
+  const [car, setCar] = useState<Car | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const handlePay = () => {
+  useEffect(() => {
+    if (carId) {
+      loadCarDetail();
+    }
+  }, [carId]);
+
+  const loadCarDetail = async () => {
+    try {
+      const res = await carApi.detail(carId);
+      if (res.code === 0 && res.data) {
+        setCar(res.data);
+        const deposit = Math.round(res.data.price * 0.1);
+        setOrder({
+          id: '',
+          carId: res.data.id,
+          carTitle: res.data.title,
+          carImage: res.data.images[0],
+          buyerId: '',
+          sellerId: '',
+          deposit,
+          totalPrice: res.data.price,
+          commission: Math.round(res.data.price * 0.02),
+          status: 'pending',
+          createTime: new Date().toISOString(),
+          updateTime: new Date().toISOString()
+        });
+      }
+    } catch (e: any) {
+      Taro.showToast({ title: e.message || '加载失败', icon: 'none' });
+    }
+  };
+
+  const handlePay = async () => {
+    if (!isLoggedIn) {
+      Taro.showToast({ title: '请先登录', icon: 'none' });
+      setTimeout(() => {
+        Taro.navigateTo({ url: '/pages/login/index' });
+      }, 1000);
+      return;
+    }
+    if (!order) return;
     console.log('[DepositPage] Pay deposit');
     if (!agreed) {
       Taro.showToast({ title: '请先同意交易协议', icon: 'none' });
@@ -20,16 +66,36 @@ const DepositPage: React.FC = () => {
     Taro.showModal({
       title: '确认支付',
       content: `您确定要支付定金¥${order.deposit.toLocaleString()}吗？`,
-      success: (res) => {
+      success: async (res) => {
         if (res.confirm) {
-          Taro.showToast({ title: '支付成功', icon: 'success' });
-          setTimeout(() => {
-            Taro.navigateTo({ url: '/pages/transfer/index' });
-          }, 1500);
+          try {
+            setLoading(true);
+            const createRes = await transactionApi.createOrder({
+              carId: order.carId,
+              deposit: order.deposit
+            });
+            if (createRes.code === 0 && createRes.data) {
+              setOrder(createRes.data);
+              Taro.showToast({ title: '支付成功', icon: 'success' });
+              setTimeout(() => {
+                Taro.navigateTo({ url: '/pages/transfer/index' });
+              }, 1500);
+            } else {
+              Taro.showToast({ title: createRes.message || '支付失败', icon: 'none' });
+            }
+          } catch (e: any) {
+            Taro.showToast({ title: e.message || '支付失败', icon: 'none' });
+          } finally {
+            setLoading(false);
+          }
         }
       }
     });
   };
+
+  if (!order || !car) {
+    return <View className={styles.page} />;
+  }
 
   const steps = [
     { title: '提交订单', desc: order.createTime, done: true },

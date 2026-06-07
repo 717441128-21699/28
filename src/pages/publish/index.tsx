@@ -1,11 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, Input, Button, Image, ScrollView } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import styles from './index.module.scss';
-import { mockCars } from '@/data/cars';
+import { carApi } from '@/utils/api';
+import { useUserStore } from '@/store/user';
+import { Car } from '@/types';
 import CarCard from '@/components/CarCard';
 
 const PublishPage: React.FC = () => {
+  const { isLoggedIn } = useUserStore();
   const [formData, setFormData] = useState({
     brand: '',
     model: '',
@@ -31,8 +34,24 @@ const PublishPage: React.FC = () => {
     sameModel: 0,
     dealRate: 0
   });
+  const [myPublishedCars, setMyPublishedCars] = useState<Car[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  const myPublishedCars = mockCars.slice(0, 2);
+  const loadMyCars = async () => {
+    if (!isLoggedIn) return;
+    try {
+      const res = await carApi.mine();
+      if (res.code === 0 && res.data) {
+        setMyPublishedCars(res.data);
+      }
+    } catch (e: any) {
+      Taro.showToast({ title: e.message || '加载失败', icon: 'none' });
+    }
+  };
+
+  useEffect(() => {
+    loadMyCars();
+  }, [isLoggedIn]);
 
   const handleInput = (key: string, value: string) => {
     setFormData(prev => ({ ...prev, [key]: value }));
@@ -52,24 +71,48 @@ const PublishPage: React.FC = () => {
     setImages(newImages);
   };
 
-  const handleValuation = () => {
+  const handleValuation = async () => {
     console.log('[PublishPage] Get valuation');
     if (!formData.brand || !formData.model || !formData.year || !formData.mileage) {
       Taro.showToast({ title: '请填写完整车辆信息', icon: 'none' });
       return;
     }
-    setValuation({
-      price: 185000,
-      minPrice: 172000,
-      maxPrice: 198000,
-      marketAvg: 186500,
-      sameModel: 128,
-      dealRate: 78
-    });
-    setShowValuation(true);
+    try {
+      setLoading(true);
+      const res = await carApi.valuation({
+        brand: formData.brand,
+        model: formData.model,
+        year: parseInt(formData.year),
+        mileage: parseFloat(formData.mileage)
+      });
+      if (res.code === 0 && res.data) {
+        setValuation({
+          price: res.data.avgPrice,
+          minPrice: res.data.minPrice,
+          maxPrice: res.data.maxPrice,
+          marketAvg: res.data.avgPrice,
+          sameModel: res.data.sameModelCount,
+          dealRate: res.data.dealRate
+        });
+        setShowValuation(true);
+      } else {
+        Taro.showToast({ title: res.message || '估价失败', icon: 'none' });
+      }
+    } catch (e: any) {
+      Taro.showToast({ title: e.message || '估价失败', icon: 'none' });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    if (!isLoggedIn) {
+      Taro.showToast({ title: '请先登录', icon: 'none' });
+      setTimeout(() => {
+        Taro.navigateTo({ url: '/pages/login/index' });
+      }, 1000);
+      return;
+    }
     console.log('[PublishPage] Submit form:', formData);
     if (!formData.brand || !formData.model || !formData.price) {
       Taro.showToast({ title: '请填写必填信息', icon: 'none' });
@@ -78,10 +121,29 @@ const PublishPage: React.FC = () => {
     Taro.showModal({
       title: '确认发布',
       content: '您确认要发布这条车辆信息吗？',
-      success: (res) => {
+      success: async (res) => {
         if (res.confirm) {
-          Taro.showToast({ title: '发布成功', icon: 'success' });
-          console.log('[PublishPage] Publish success');
+          try {
+            setLoading(true);
+            const publishRes = await carApi.publish({
+              ...formData,
+              year: parseInt(formData.year),
+              price: parseFloat(formData.price),
+              mileage: parseFloat(formData.mileage),
+              images
+            });
+            if (publishRes.code === 0) {
+              Taro.showToast({ title: '发布成功', icon: 'success' });
+              loadMyCars();
+              console.log('[PublishPage] Publish success');
+            } else {
+              Taro.showToast({ title: publishRes.message || '发布失败', icon: 'none' });
+            }
+          } catch (e: any) {
+            Taro.showToast({ title: e.message || '发布失败', icon: 'none' });
+          } finally {
+            setLoading(false);
+          }
         }
       }
     });

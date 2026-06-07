@@ -1,19 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, Input, Button } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import styles from './index.module.scss';
 import { useUserStore } from '@/store/user';
-import { mockLoans } from '@/data/orders';
+import { financeApi } from '@/utils/api';
+import { Loan } from '@/types';
 import classnames from 'classnames';
 
 const LoanPage: React.FC = () => {
-  const { getUser } = useUserStore();
-  const user = getUser();
+  const { isLoggedIn, user } = useUserStore();
   const [form, setForm] = useState({
     carPrice: '268000',
     downPayment: '68000',
     periods: '36'
   });
+  const [loans, setLoans] = useState<Loan[]>([]);
+  const [loading, setLoading] = useState(false);
 
   const periodOptions = ['12', '24', '36', '48'];
 
@@ -26,7 +28,33 @@ const LoanPage: React.FC = () => {
     ? Math.round(loanAmount * (1 + interestRate / 100 * periods / 12) / periods)
     : 0;
 
-  const handleApply = () => {
+  useEffect(() => {
+    loadLoans();
+  }, [isLoggedIn]);
+
+  const loadLoans = async () => {
+    if (!isLoggedIn) return;
+    try {
+      setLoading(true);
+      const res = await financeApi.loans();
+      if (res.code === 0 && res.data) {
+        setLoans(res.data);
+      }
+    } catch (e: any) {
+      Taro.showToast({ title: e.message || '加载失败', icon: 'none' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleApply = async () => {
+    if (!isLoggedIn) {
+      Taro.showToast({ title: '请先登录', icon: 'none' });
+      setTimeout(() => {
+        Taro.navigateTo({ url: '/pages/login/index' });
+      }, 1000);
+      return;
+    }
     console.log('[LoanPage] Apply loan:', form);
     if (loanAmount <= 0) {
       Taro.showToast({ title: '请填写正确金额', icon: 'none' });
@@ -35,13 +63,42 @@ const LoanPage: React.FC = () => {
     Taro.showModal({
       title: '确认申请',
       content: `您确定申请车贷¥${loanAmount.toLocaleString()}，分${periods}期还款吗？`,
-      success: (res) => {
+      success: async (res) => {
         if (res.confirm) {
-          Taro.showToast({ title: '申请已提交，等待审批', icon: 'success' });
+          try {
+            setLoading(true);
+            const applyRes = await financeApi.applyLoan({
+              amount: loanAmount,
+              downPayment: down,
+              periods
+            });
+            if (applyRes.code === 0) {
+              Taro.showToast({ title: '申请已提交，等待审批', icon: 'success' });
+              loadLoans();
+            } else {
+              Taro.showToast({ title: applyRes.message || '申请失败', icon: 'none' });
+            }
+          } catch (e: any) {
+            Taro.showToast({ title: e.message || '申请失败', icon: 'none' });
+          } finally {
+            setLoading(false);
+          }
         }
       }
     });
   };
+
+  const getStatusLabel = (status: string) => {
+    const map: Record<string, string> = {
+      pending: '审批中',
+      approved: '已批准',
+      rejected: '已拒绝',
+      repaid: '已还清'
+    };
+    return map[status] || status;
+  };
+
+  const creditScore = user?.creditScore || 700;
 
   return (
     <View className={styles.page}>
@@ -50,11 +107,11 @@ const LoanPage: React.FC = () => {
         <Text className={styles.heroSubtitle}>快速审批 · 低利率 · 灵活分期</Text>
         <View className={styles.creditRow}>
           <View className={styles.creditItem}>
-            <Text className={styles.creditValue}>{user.creditScore}</Text>
+            <Text className={styles.creditValue}>{creditScore}</Text>
             <Text className={styles.creditLabel}>信用分</Text>
           </View>
           <View className={styles.creditItem}>
-            <Text className={styles.creditValue}>{(user.creditScore * 1000).toLocaleString()}</Text>
+            <Text className={styles.creditValue}>{(creditScore * 1000).toLocaleString()}</Text>
             <Text className={styles.creditLabel}>预授信额度</Text>
           </View>
           <View className={styles.creditItem}>
@@ -118,7 +175,7 @@ const LoanPage: React.FC = () => {
 
       <View className={styles.myLoans}>
         <Text className={styles.sectionTitle}>📋 我的贷款</Text>
-        {mockLoans.map(loan => (
+        {loans.map(loan => (
           <View key={loan.id} className={styles.loanItem}>
             <View className={styles.loanInfo}>
               <Text className={styles.loanAmount}>¥{loan.amount.toLocaleString()}</Text>
@@ -126,7 +183,7 @@ const LoanPage: React.FC = () => {
                 {loan.periods}期 · 月供¥{loan.monthlyPayment.toLocaleString()} · {loan.applicationTime.slice(0, 10)}
               </Text>
             </View>
-            <View className={styles.statusTag}>还款中</View>
+            <View className={styles.statusTag}>{getStatusLabel(loan.status)}</View>
           </View>
         ))}
       </View>

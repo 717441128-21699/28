@@ -1,29 +1,105 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, Button } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import styles from './index.module.scss';
-import { mockOrders } from '@/data/orders';
+import { transactionApi } from '@/utils/api';
+import { useUserStore } from '@/store/user';
+import { Order } from '@/types';
 import classnames from 'classnames';
 
 const TransferPage: React.FC = () => {
-  const order = mockOrders[0];
+  const { isLoggedIn, user } = useUserStore();
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [order, setOrder] = useState<Order | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const handleConfirm = () => {
+  useEffect(() => {
+    loadOrders();
+  }, [isLoggedIn]);
+
+  const loadOrders = async () => {
+    if (!isLoggedIn) return;
+    try {
+      setLoading(true);
+      const res = await transactionApi.orders('buyer');
+      if (res.code === 0 && res.data && res.data.length > 0) {
+        setOrders(res.data);
+        setOrder(res.data[0]);
+      }
+    } catch (e: any) {
+      Taro.showToast({ title: e.message || '加载失败', icon: 'none' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleConfirm = async () => {
+    if (!isLoggedIn) {
+      Taro.showToast({ title: '请先登录', icon: 'none' });
+      setTimeout(() => {
+        Taro.navigateTo({ url: '/pages/login/index' });
+      }, 1000);
+      return;
+    }
+    if (!order) return;
     console.log('[TransferPage] Confirm transfer');
     Taro.showModal({
       title: '确认到场',
       content: '请确认买卖双方均已到场，并已完成车辆过户手续。确认后系统将自动结算尾款。',
-      success: (res) => {
+      success: async (res) => {
         if (res.confirm) {
-          Taro.showToast({ title: '结算成功', icon: 'success' });
+          try {
+            setLoading(true);
+            const confirmRes = await transactionApi.confirmTransfer({
+              orderId: order.id,
+              buyerConfirmed: true,
+              sellerConfirmed: false
+            });
+            if (confirmRes.code === 0) {
+              Taro.showToast({ title: '结算成功', icon: 'success' });
+              loadOrders();
+            } else {
+              Taro.showToast({ title: confirmRes.message || '操作失败', icon: 'none' });
+            }
+          } catch (e: any) {
+            Taro.showToast({ title: e.message || '操作失败', icon: 'none' });
+          } finally {
+            setLoading(false);
+          }
         }
       }
     });
   };
 
+  const handleSignContract = async () => {
+    if (!order) return;
+    try {
+      setLoading(true);
+      const res = await transactionApi.signContract(order.id);
+      if (res.code === 0) {
+        Taro.showToast({ title: '合同签署成功', icon: 'success' });
+        loadOrders();
+      } else {
+        Taro.showToast({ title: res.message || '签署失败', icon: 'none' });
+      }
+    } catch (e: any) {
+      Taro.showToast({ title: e.message || '签署失败', icon: 'none' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleCancel = () => {
     Taro.showToast({ title: '已取消', icon: 'none' });
   };
+
+  if (!order) {
+    return (
+      <View className={styles.page}>
+        <Text style={{ textAlign: 'center', padding: 100, color: '#86909C' }}>暂无进行中的订单</Text>
+      </View>
+    );
+  }
 
   const finalAmount = order.totalPrice - order.deposit - order.commission;
 
@@ -65,6 +141,15 @@ const TransferPage: React.FC = () => {
           <Text className={styles.settleLabel}>卖家实收</Text>
           <Text className={styles.settleTotal}>¥{finalAmount.toLocaleString()}</Text>
         </View>
+        {order.status === 'deposit_paid' && (
+          <Button
+            className={styles.confirmBtn}
+            style={{ marginTop: '24rpx', width: '100%' }}
+            onClick={handleSignContract}
+          >
+            签署电子合同
+          </Button>
+        )}
         <View className={styles.btnRow}>
           <Button className={styles.cancelBtn} onClick={handleCancel}>取消交易</Button>
           <Button className={styles.confirmBtn} onClick={handleConfirm}>确认到场结算</Button>

@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, Button } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import styles from './index.module.scss';
-import { mockInsurances } from '@/data/orders';
-import { formatMoney, relativeTime } from '@/utils/format';
+import { useUserStore } from '@/store/user';
+import { financeApi } from '@/utils/api';
+import { Insurance } from '@/types';
+import { formatMoney } from '@/utils/format';
 import classnames from 'classnames';
 
 const plans = [
@@ -37,7 +39,29 @@ const plans = [
 ];
 
 const InsurancePage: React.FC = () => {
+  const { isLoggedIn } = useUserStore();
   const [selectedIds, setSelectedIds] = useState<string[]>(['compulsory', 'comprehensive']);
+  const [insurances, setInsurances] = useState<Insurance[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    loadInsurances();
+  }, [isLoggedIn]);
+
+  const loadInsurances = async () => {
+    if (!isLoggedIn) return;
+    try {
+      setLoading(true);
+      const res = await financeApi.insurances();
+      if (res.code === 0 && res.data) {
+        setInsurances(res.data);
+      }
+    } catch (e: any) {
+      Taro.showToast({ title: e.message || '加载失败', icon: 'none' });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleToggle = (id: string) => {
     setSelectedIds(prev =>
@@ -51,7 +75,14 @@ const InsurancePage: React.FC = () => {
     .filter(p => selectedIds.includes(p.id))
     .reduce((sum, p) => sum + p.premium, 0);
 
-  const handleBuy = () => {
+  const handleBuy = async () => {
+    if (!isLoggedIn) {
+      Taro.showToast({ title: '请先登录', icon: 'none' });
+      setTimeout(() => {
+        Taro.navigateTo({ url: '/pages/login/index' });
+      }, 1000);
+      return;
+    }
     if (selectedIds.length === 0) {
       Taro.showToast({ title: '请选择保险方案', icon: 'none' });
       return;
@@ -59,9 +90,25 @@ const InsurancePage: React.FC = () => {
     Taro.showModal({
       title: '确认投保',
       content: `您确定购买所选车险，合计¥${formatMoney(totalPremium)}吗？`,
-      success: (res) => {
+      success: async (res) => {
         if (res.confirm) {
-          Taro.showToast({ title: '投保成功', icon: 'success' });
+          try {
+            setLoading(true);
+            const selectedPlans = plans
+              .filter(p => selectedIds.includes(p.id))
+              .map(p => ({ type: p.id, typeName: p.name, premium: p.premium, coverage: p.coverage }));
+            const buyRes = await financeApi.buyInsurance({ plans: selectedPlans });
+            if (buyRes.code === 0) {
+              Taro.showToast({ title: '投保成功', icon: 'success' });
+              loadInsurances();
+            } else {
+              Taro.showToast({ title: buyRes.message || '投保失败', icon: 'none' });
+            }
+          } catch (e: any) {
+            Taro.showToast({ title: e.message || '投保失败', icon: 'none' });
+          } finally {
+            setLoading(false);
+          }
         }
       }
     });
@@ -133,7 +180,7 @@ const InsurancePage: React.FC = () => {
 
       <View className={styles.myInsurances}>
         <Text className={styles.sectionTitle}>📄 我的保单</Text>
-        {mockInsurances.map(ins => (
+        {insurances.map(ins => (
           <View key={ins.id} className={styles.insuranceItem}>
             <View className={styles.itemHeader}>
               <Text className={styles.itemTitle}>{ins.typeName} · 保额{formatMoney(ins.coverage)}</Text>

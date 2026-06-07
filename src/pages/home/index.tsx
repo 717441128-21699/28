@@ -2,20 +2,63 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, Input, ScrollView, Button } from '@tarojs/components';
 import Taro, { usePullDownRefresh } from '@tarojs/taro';
 import styles from './index.module.scss';
-import { mockCars, mockBrands } from '@/data/cars';
-import { mockPredictions } from '@/data/orders';
+import { carApi } from '@/utils/api';
+import { Car, Brand, PredictionData } from '@/types';
 import CarCard from '@/components/CarCard';
+
+const mockPredictions: PredictionData = {
+  hotModels: [
+    { model: '特斯拉 Model 3', trend: 15, score: 98 },
+    { model: '比亚迪 汉EV', trend: 12, score: 95 },
+    { model: '宝马 3系', trend: 8, score: 90 },
+    { model: '奔驰 C级', trend: 5, score: 85 },
+    { model: '奥迪 A4L', trend: 3, score: 82 }
+  ],
+  priceTrend: [
+    { month: '1月', price: 15.2 },
+    { month: '2月', price: 15.5 },
+    { month: '3月', price: 15.8 },
+    { month: '4月', price: 16.0 },
+    { month: '5月', price: 16.2 },
+    { month: '6月', price: 16.3 }
+  ]
+};
 
 const HomePage: React.FC = () => {
   const [searchValue, setSearchValue] = useState('');
-  const [cars, setCars] = useState(mockCars);
+  const [cars, setCars] = useState<Car[]>([]);
+  const [brands, setBrands] = useState<Brand[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [recommendRes, brandsRes, listRes] = await Promise.all([
+        carApi.recommend(),
+        carApi.brands(),
+        carApi.list()
+      ]);
+      if (recommendRes.code === 0 && recommendRes.data) {
+        setCars(recommendRes.data);
+      } else if (listRes.code === 0 && listRes.data) {
+        setCars(listRes.data.list);
+      }
+      if (brandsRes.code === 0 && brandsRes.data) {
+        setBrands(brandsRes.data);
+      }
+    } catch (e: any) {
+      Taro.showToast({ title: e.message || '加载失败', icon: 'none' });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    console.log('[HomePage] Component mounted, car count:', cars.length);
-  }, [cars.length]);
+    loadData();
+  }, []);
 
   usePullDownRefresh(() => {
-    console.log('[HomePage] Pull down refresh triggered');
+    loadData();
     setTimeout(() => {
       Taro.stopPullDownRefresh();
     }, 1000);
@@ -34,11 +77,17 @@ const HomePage: React.FC = () => {
     }
   };
 
-  const handleBrandClick = (brand: string) => {
+  const handleBrandClick = async (brand: string) => {
     console.log('[HomePage] Brand clicked:', brand);
     if (brand !== '更多') {
-      const filtered = mockCars.filter(c => c.brand === brand);
-      setCars(filtered.length > 0 ? filtered : mockCars);
+      try {
+        const res = await carApi.list({ brand });
+        if (res.code === 0 && res.data) {
+          setCars(res.data.list.length > 0 ? res.data.list : cars);
+        }
+      } catch (e: any) {
+        Taro.showToast({ title: e.message || '加载失败', icon: 'none' });
+      }
     }
   };
 
@@ -101,7 +150,7 @@ const HomePage: React.FC = () => {
           <Text className={styles.sectionMore}>查看全部</Text>
         </View>
         <View className={styles.brandGrid}>
-          {mockBrands.slice(0, 8).map(brand => (
+          {brands.slice(0, 8).map(brand => (
             <View
               key={brand.id}
               className={styles.brandItem}
