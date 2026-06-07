@@ -4,3 +4,21 @@
 2026-06-07 23:59:13.477 CST [35664] 警告:  无法为 "localhost" 创建监听套接字
 2026-06-07 23:59:13.477 CST [35664] 致命错误:  无法创建TCP/IP套接字
 2026-06-07 23:59:13.566 CST [35664] 日志:  数据库系统已关闭
+2026-06-08 00:02:34.064 CST [18644] 日志:  正在启动 PostgreSQL 16.14, compiled by Visual C++ build 1944, 64-bit
+2026-06-08 00:02:34.068 CST [18644] 日志:  正在监听IPv4地址"127.0.0.1"，端口 5433
+2026-06-08 00:02:34.315 CST [34612] 日志:  数据库上次关闭时间为 2026-06-07 23:58:42 CST
+2026-06-08 00:02:34.532 CST [18644] 日志:  数据库系统准备接受连接
+2026-06-08 00:07:34.251 CST [28892] 日志:  checkpoint starting: time
+2026-06-08 00:07:38.953 CST [28892] 日志:  checkpoint complete: wrote 46 buffers (0.3%); 0 WAL file(s) added, 0 removed, 0 recycled; write=4.692 s, sync=0.004 s, total=4.703 s; sync files=11, longest=0.001 s, average=0.001 s; distance=275 kB, estimate=275 kB; lsn=0/15B3288, redo lsn=0/15B3250
+2026-06-08 00:15:33.629 CST [4212] 鏃ュ織:  鏃犳硶浠庡鎴风鑾峰緱鏁版嵁: An existing connection was forcibly closed by the remote host.
+	
+2026-06-08 00:17:34.857 CST [21624] 鏃ュ織:  鏃犳硶浠庡鎴风鑾峰緱鏁版嵁: An existing connection was forcibly closed by the remote host.
+	
+2026-06-08 00:17:34.857 CST [23580] 鏃ュ織:  鏃犳硶浠庡鎴风鑾峰緱鏁版嵁: An existing connection was forcibly closed by the remote host.
+	
+2026-06-08 00:17:34.975 CST [28892] 日志:  checkpoint starting: time
+2026-06-08 00:18:23.282 CST [22236] 鏃ュ織:  鏃犳硶浠庡鎴风鑾峰緱鏁版嵁: An existing connection was forcibly closed by the remote host.
+	
+2026-06-08 00:18:23.283 CST [31808] 鏃ュ織:  鏃犳硶浠庡鎴风鑾峰緱鏁版嵁: An existing connection was forcibly closed by the remote host.
+	
+2026-06-08 00:19:25.788 CST [28892] 日志:  checkpoint complete: wrote 1020 buffers (6.2%); 0 WAL file(s) added, 0 removed, 0 recycled; write=110.710 s, sync=0.097 s, total=110.814 s; sync files=360, longest=0.001 s, average=0.001 s; distance=4819 kB, estimate=4819 kB; lsn=0/1A6CCB8, redo lsn=0/1A68030
