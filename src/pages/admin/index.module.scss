@@ -1,0 +1,338 @@
+@use '@/styles/variables.scss' as *;
+
+.page {
+  min-height: 100vh;
+  padding: $spacing-md $page-padding;
+  background: $color-bg-page;
+}
+
+.header {
+  background: linear-gradient(135deg, #1D2939 0%, #344054 100%);
+  border-radius: $radius-xl;
+  padding: $spacing-xl;
+  color: $color-text-white;
+  margin-bottom: $spacing-md;
+}
+
+.headerTitle {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  margin-bottom: $spacing-xs;
+}
+
+.headerSub {
+  font-size: $font-size-sm;
+  opacity: 0.7;
+  margin-bottom: $spacing-lg;
+}
+
+.filterRow {
+  display: flex;
+  gap: $spacing-sm;
+}
+
+.filterItem {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: $radius-md;
+  padding: $spacing-sm;
+  text-align: center;
+  border: 1rpx solid rgba(255, 255, 255, 0.15);
+}
+
+.filterLabel {
+  font-size: $font-size-xs;
+  opacity: 0.7;
+  margin-bottom: 4rpx;
+}
+
+.filterValue {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: $spacing-sm;
+  margin-bottom: $spacing-md;
+}
+
+.statCard {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  box-shadow: $shadow-card;
+}
+
+.statIcon {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: $radius-md;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36rpx;
+  margin-bottom: $spacing-md;
+
+  &.blue { background: rgba(30, 111, 255, 0.1); }
+  &.green { background: rgba(0, 180, 42, 0.1); }
+  &.orange { background: rgba(255, 122, 0, 0.1); }
+  &.purple { background: rgba(139, 92, 246, 0.1); }
+  &.red { background: rgba(255, 77, 79, 0.1); }
+  &.cyan { background: rgba(0, 180, 180, 0.1); }
+}
+
+.statValue {
+  font-size: $font-size-xxl;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+  margin-bottom: 4rpx;
+}
+
+.statLabel {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.statTrend {
+  margin-top: $spacing-xs;
+  font-size: $font-size-xs;
+  color: $color-success;
+
+  &.down { color: $color-price; }
+}
+
+.chartCard {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  box-shadow: $shadow-card;
+  margin-bottom: $spacing-md;
+}
+
+.sectionTitle {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  margin-bottom: $spacing-md;
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $spacing-md;
+}
+
+.moreBtn {
+  font-size: $font-size-xs;
+  color: $color-primary;
+}
+
+.barChart {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  height: 280rpx;
+  gap: $spacing-sm;
+  padding-bottom: 40rpx;
+  position: relative;
+}
+
+.barItem {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+  position: relative;
+}
+
+.barFill {
+  width: 100%;
+  background: linear-gradient(180deg, $color-primary 0%, $color-primary-light 100%);
+  border-radius: $radius-xs $radius-xs 0 0;
+  position: relative;
+  transition: height 0.6s ease;
+  min-height: 8rpx;
+}
+
+.barValue {
+  position: absolute;
+  top: -36rpx;
+  font-size: $font-size-xs;
+  color: $color-text-secondary;
+  font-weight: $font-weight-medium;
+  white-space: nowrap;
+}
+
+.barLabel {
+  position: absolute;
+  bottom: -32rpx;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.rankList {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.rankItem {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+}
+
+.rankNum {
+  width: 40rpx;
+  height: 40rpx;
+  border-radius: $radius-xs;
+  background: $color-bg-page;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-bold;
+  color: $color-text-secondary;
+  flex-shrink: 0;
+
+  &.top1 { background: #FF4D4F; color: #fff; }
+  &.top2 { background: #FF7A00; color: #fff; }
+  &.top3 { background: #FADB14; color: #fff; }
+}
+
+.rankContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.rankHeader {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: $spacing-xs;
+}
+
+.rankName {
+  font-size: $font-size-sm;
+  color: $color-text-primary;
+  font-weight: $font-weight-medium;
+}
+
+.rankValue {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  font-weight: $font-weight-semibold;
+}
+
+.rankBar {
+  height: 12rpx;
+  background: $color-bg-page;
+  border-radius: 100rpx;
+  overflow: hidden;
+}
+
+.rankFill {
+  height: 100%;
+  background: linear-gradient(90deg, $color-primary 0%, $color-primary-light 100%);
+  border-radius: 100rpx;
+}
+
+.exportCard {
+  background: linear-gradient(135deg, rgba(30, 111, 255, 0.06) 0%, rgba(30, 111, 255, 0.02) 100%);
+  border: 1rpx solid rgba(30, 111, 255, 0.2);
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $spacing-md;
+}
+
+.exportInfo {
+  flex: 1;
+}
+
+.exportTitle {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  margin-bottom: 4rpx;
+}
+
+.exportDesc {
+  font-size: $font-size-xs;
+  color: $color-text-secondary;
+}
+
+.exportBtn {
+  @include button-reset;
+  padding: $spacing-sm $spacing-lg;
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+  color: $color-text-white;
+  border-radius: $radius-button;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  height: auto;
+}
+
+.predictionCard {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.06) 0%, rgba(139, 92, 246, 0.02) 100%);
+  border: 1rpx solid rgba(139, 92, 246, 0.2);
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-md;
+}
+
+.predictionItem {
+  display: flex;
+  align-items: center;
+  padding: $spacing-sm 0;
+  border-bottom: 1rpx solid rgba(139, 92, 246, 0.1);
+
+  &:last-child { border-bottom: none; }
+}
+
+.predictionRank {
+  width: 48rpx;
+  height: 48rpx;
+  border-radius: 50%;
+  background: rgba(139, 92, 246, 0.1);
+  color: #8B5CF6;
+  font-weight: $font-weight-bold;
+  font-size: $font-size-sm;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: $spacing-md;
+}
+
+.predictionModel {
+  flex: 1;
+  font-size: $font-size-sm;
+  color: $color-text-primary;
+  font-weight: $font-weight-medium;
+}
+
+.predictionTrend {
+  font-size: $font-size-sm;
+  color: $color-success;
+  font-weight: $font-weight-semibold;
+
+  &.down { color: $color-price; }
+}
+
+.predictionScore {
+  margin-left: $spacing-sm;
+  padding: 2rpx 12rpx;
+  background: rgba(139, 92, 246, 0.1);
+  color: #8B5CF6;
+  border-radius: 100rpx;
+  font-size: $font-size-xs;
+}

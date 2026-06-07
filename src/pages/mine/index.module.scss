@@ -1,0 +1,262 @@
+@use '@/styles/variables.scss' as *;
+
+.page {
+  min-height: 100vh;
+  padding-bottom: $spacing-xl;
+}
+
+.userHeader {
+  padding: $spacing-xl $page-padding;
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+  color: $color-text-white;
+  border-radius: 0 0 $radius-xl $radius-xl;
+  margin-bottom: $spacing-md;
+  position: relative;
+  overflow: hidden;
+}
+
+.headerBg {
+  position: absolute;
+  top: -50rpx;
+  right: -50rpx;
+  width: 300rpx;
+  height: 300rpx;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.userInfo {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  position: relative;
+  z-index: 1;
+}
+
+.avatar {
+  width: 140rpx;
+  height: 140rpx;
+  border-radius: $radius-round;
+  border: 4rpx solid rgba(255, 255, 255, 0.3);
+}
+
+.userDetail {
+  flex: 1;
+}
+
+.nickname {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  margin-bottom: $spacing-xs;
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+}
+
+.vipBadge {
+  padding: 4rpx 12rpx;
+  border-radius: $radius-xs;
+  background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+  font-size: $font-size-xs;
+  color: #5C4000;
+  font-weight: $font-weight-semibold;
+}
+
+.phone {
+  font-size: $font-size-sm;
+  opacity: 0.9;
+  margin-bottom: $spacing-sm;
+}
+
+.creditRow {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+}
+
+.creditLabel {
+  font-size: $font-size-xs;
+  opacity: 0.8;
+}
+
+.creditScore {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+}
+
+.statsRow {
+  display: flex;
+  margin-top: $spacing-xl;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: $radius-lg;
+  padding: $spacing-md;
+  backdrop-filter: blur(10rpx);
+  position: relative;
+  z-index: 1;
+}
+
+.statItem {
+  flex: 1;
+  text-align: center;
+}
+
+.statValue {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  margin-bottom: 4rpx;
+}
+
+.statLabel {
+  font-size: $font-size-xs;
+  opacity: 0.9;
+}
+
+.vipCard {
+  margin: 0 $page-spacing $page-spacing $page-padding;
+  padding: $page-spacing;
+  border-radius: $radius-lg;
+  background: linear-gradient(135deg, #FFF7E6 0%, #FFE8BF 100%);
+  border: 1rpx solid rgba(255, 122, 0, 0.2);
+  margin-bottom: $spacing-md;
+}
+
+.vipHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-md;
+}
+
+.vipTitle {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-secondary-dark;
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+}
+
+.vipArrow {
+  font-size: $font-size-sm;
+  color: $color-secondary;
+}
+
+.progressWrap {
+  margin-bottom: $spacing-sm;
+}
+
+.progressInfo {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: $spacing-xs;
+}
+
+.progressLabel {
+  font-size: $font-size-xs;
+  color: $color-text-secondary;
+}
+
+.progressValue {
+  font-size: $font-size-xs;
+  color: $color-secondary;
+  font-weight: $font-weight-medium;
+}
+
+.progressBar {
+  height: 12rpx;
+  background: rgba(255, 122, 0, 0.15);
+  border-radius: $radius-round;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: linear-gradient(90deg, $color-secondary 0%, $color-secondary-light 100%);
+  border-radius: $radius-round;
+  transition: width $transition-base;
+}
+
+.vipTips {
+  font-size: $font-size-xs;
+  color: $color-text-secondary;
+}
+
+.menuGroup {
+  margin: 0 $page-padding $spacing-md;
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  overflow: hidden;
+  box-shadow: $shadow-card;
+}
+
+.groupTitle {
+  padding: $spacing-md $spacing-lg $spacing-sm;
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}
+
+.menuItem {
+  display: flex;
+  align-items: center;
+  padding: $spacing-lg;
+  gap: $spacing-md;
+  border-bottom: 1rpx solid $color-divider;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &:active {
+    background: $color-bg-hover;
+  }
+}
+
+.menuIcon {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: $radius-md;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28rpx;
+  flex-shrink: 0;
+}
+
+.iconBlue {
+  background: rgba(30, 111, 255, 0.1);
+}
+
+.iconGreen {
+  background: rgba(0, 180, 42, 0.1);
+}
+
+.iconOrange {
+  background: rgba(255, 122, 0, 0.1);
+}
+
+.iconRed {
+  background: rgba(245, 63, 63, 0.1);
+}
+
+.iconPurple {
+  background: rgba(139, 92, 246, 0.1);
+}
+
+.menuText {
+  flex: 1;
+  font-size: $font-size-md;
+  color: $color-text-primary;
+}
+
+.menuBadge {
+  padding: 2rpx 12rpx;
+  border-radius: $radius-round;
+  background: $color-error;
+  color: $color-text-white;
+  font-size: $font-size-xs;
+}
+
+.menuArrow {
+  color: $color-text-tertiary;
+  font-size: $font-size-sm;
+}

@@ -1,0 +1,288 @@
+@use '@/styles/variables.scss' as *;
+
+.page {
+  min-height: 100vh;
+  background: $color-bg-page;
+}
+
+.vipHeader {
+  background: linear-gradient(135deg, $color-gold-start 0%, $color-gold-end 100%);
+  padding: $spacing-xl $page-padding $spacing-xxl;
+  color: $color-text-white;
+  position: relative;
+}
+
+.levelBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: 6rpx 20rpx;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 100rpx;
+  margin-bottom: $spacing-lg;
+  backdrop-filter: blur(10rpx);
+}
+
+.levelIcon {
+  font-size: 32rpx;
+}
+
+.levelName {
+  font-size: $font-size-md;
+  font-weight: $font-weight-bold;
+}
+
+.userInfo {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  margin-bottom: $spacing-xl;
+}
+
+.avatar {
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 50%;
+  border: 4rpx solid rgba(255, 255, 255, 0.4);
+}
+
+.userText {
+  flex: 1;
+}
+
+.nickname {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+  margin-bottom: 4rpx;
+}
+
+.userDesc {
+  font-size: $font-size-sm;
+  opacity: 0.85;
+}
+
+.progressCard {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  backdrop-filter: blur(10rpx);
+}
+
+.progressHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $spacing-sm;
+}
+
+.progressLabel {
+  font-size: $font-size-sm;
+  opacity: 0.9;
+}
+
+.progressText {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+}
+
+.progressBar {
+  width: 100%;
+  height: 16rpx;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 100rpx;
+  overflow: hidden;
+  margin-bottom: $spacing-xs;
+}
+
+.progressFill {
+  height: 100%;
+  background: linear-gradient(90deg, #FFF 0%, #FFE58F 100%);
+  border-radius: 100rpx;
+  transition: width 0.6s ease;
+}
+
+.progressHint {
+  font-size: $font-size-xs;
+  opacity: 0.8;
+}
+
+.levelsSection {
+  padding: $spacing-lg $page-padding;
+  margin-top: -$spacing-lg;
+}
+
+.sectionCard {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  box-shadow: $shadow-card;
+}
+
+.sectionTitle {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  margin-bottom: $spacing-md;
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+}
+
+.levelsRow {
+  display: flex;
+  gap: $spacing-sm;
+}
+
+.levelCard {
+  flex: 1;
+  padding: $spacing-md $spacing-xs;
+  border-radius: $radius-md;
+  text-align: center;
+  background: $color-bg-page;
+  border: 2rpx solid transparent;
+  position: relative;
+
+  &.current {
+    border-color: $color-gold-start;
+    background: linear-gradient(135deg, rgba(250, 219, 97, 0.08) 0%, rgba(250, 219, 97, 0.02) 100%);
+  }
+
+  &.locked {
+    opacity: 0.5;
+  }
+}
+
+.levelCardIcon {
+  font-size: 40rpx;
+  margin-bottom: $spacing-xs;
+}
+
+.levelCardName {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  margin-bottom: 4rpx;
+}
+
+.levelCardExp {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.currentTag {
+  position: absolute;
+  top: -10rpx;
+  right: -10rpx;
+  padding: 2rpx 10rpx;
+  background: $color-gold-start;
+  color: #fff;
+  font-size: 20rpx;
+  border-radius: 100rpx;
+}
+
+.benefitsSection {
+  padding: $spacing-md $page-padding;
+}
+
+.benefitsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: $spacing-sm;
+}
+
+.benefitCard {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  box-shadow: $shadow-card;
+
+  &.active {
+    background: linear-gradient(135deg, rgba(250, 219, 97, 0.06) 0%, rgba(250, 219, 97, 0.02) 100%);
+    border: 1rpx solid rgba(250, 219, 97, 0.3);
+  }
+
+  &.locked {
+    opacity: 0.55;
+  }
+}
+
+.benefitIcon {
+  font-size: 48rpx;
+  margin-bottom: $spacing-sm;
+}
+
+.benefitName {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  margin-bottom: 4rpx;
+}
+
+.benefitDesc {
+  font-size: $font-size-xs;
+  color: $color-text-secondary;
+  line-height: 1.5;
+}
+
+.benefitLevel {
+  margin-top: $spacing-sm;
+  padding: 4rpx 12rpx;
+  border-radius: $radius-xs;
+  font-size: $font-size-xs;
+  display: inline-block;
+  background: rgba(0, 0, 0, 0.04);
+  color: $color-text-tertiary;
+}
+
+.benefitLevel.unlocked {
+  background: rgba(0, 180, 42, 0.1);
+  color: $color-success;
+}
+
+.historySection {
+  padding: $spacing-md $page-padding $spacing-lg;
+}
+
+.historyList {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-card;
+  overflow: hidden;
+}
+
+.historyItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: $spacing-md $spacing-lg;
+  border-bottom: 1rpx solid $color-divider;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.historyInfo {
+  flex: 1;
+}
+
+.historyTitle {
+  font-size: $font-size-sm;
+  color: $color-text-primary;
+  margin-bottom: 4rpx;
+}
+
+.historyTime {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.historyExp {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-gold-start;
+}
+
+.historyExp.negative {
+  color: $color-price;
+}

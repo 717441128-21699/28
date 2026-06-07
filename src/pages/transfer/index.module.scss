@@ -1,0 +1,188 @@
+@use '@/styles/variables.scss' as *;
+
+.page {
+  min-height: 100vh;
+  padding: $spacing-md $page-padding;
+}
+
+.qrSection {
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+  border-radius: $radius-xl;
+  padding: $spacing-xl;
+  text-align: center;
+  color: $color-text-white;
+  margin-bottom: $spacing-md;
+}
+
+.qrTitle {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  margin-bottom: $spacing-sm;
+}
+
+.qrSubtitle {
+  font-size: $font-size-sm;
+  opacity: 0.9;
+  margin-bottom: $spacing-lg;
+}
+
+.qrCode {
+  width: 360rpx;
+  height: 360rpx;
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  margin: 0 auto $spacing-lg;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 160rpx;
+}
+
+.qrTips {
+  font-size: $font-size-sm;
+  opacity: 0.9;
+  line-height: 1.6;
+}
+
+.settleCard {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-md;
+  box-shadow: $shadow-card;
+}
+
+.sectionTitle {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  margin-bottom: $spacing-md;
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+}
+
+.settleRow {
+  display: flex;
+  justify-content: space-between;
+  padding: $spacing-sm 0;
+  border-bottom: 1rpx solid $color-divider;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.settleLabel {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+}
+
+.settleValue {
+  font-size: $font-size-sm;
+  color: $color-text-primary;
+}
+
+.settleTotal {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  color: $color-price;
+}
+
+.btnRow {
+  display: flex;
+  gap: $spacing-md;
+  margin-top: $spacing-lg;
+}
+
+.confirmBtn {
+  @include button-reset;
+  flex: 1;
+  height: $button-height-lg;
+  background: linear-gradient(135deg, $color-success 0%, #23C343 100%);
+  border-radius: $radius-button;
+  font-size: $font-size-md;
+  color: $color-text-white;
+  font-weight: $font-weight-semibold;
+
+  &:active {
+    opacity: 0.9;
+  }
+}
+
+.cancelBtn {
+  @include button-reset;
+  flex: 1;
+  height: $button-height-lg;
+  background: $color-bg-page;
+  border-radius: $radius-button;
+  font-size: $font-size-md;
+  color: $color-text-secondary;
+
+  &:active {
+    background: $color-bg-hover;
+  }
+}
+
+.steps {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  box-shadow: $shadow-card;
+}
+
+.stepItem {
+  display: flex;
+  gap: $spacing-md;
+  padding: $spacing-sm 0;
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 18rpx;
+    top: 60rpx;
+    bottom: 0;
+    width: 2rpx;
+    background: $color-border;
+  }
+
+  &:last-child::before {
+    display: none;
+  }
+}
+
+.stepDot {
+  width: 36rpx;
+  height: 36rpx;
+  border-radius: $radius-round;
+  background: $color-success;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: $font-size-xs;
+  color: $color-text-white;
+  z-index: 1;
+}
+
+.stepDotPending {
+  background: $color-border;
+}
+
+.stepContent {
+  flex: 1;
+  padding-bottom: $spacing-sm;
+}
+
+.stepTitle {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: $color-text-primary;
+  margin-bottom: 4rpx;
+}
+
+.stepDesc {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}

@@ -1,0 +1,130 @@
+@use '@/styles/variables.scss' as *;
+
+.card {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  overflow: hidden;
+  box-shadow: $shadow-card;
+  margin-bottom: $spacing-md;
+  transition: all $transition-base;
+
+  &:active {
+    opacity: 0.9;
+    transform: scale(0.99);
+  }
+}
+
+.imageWrap {
+  position: relative;
+  width: 100%;
+  height: 340rpx;
+}
+
+.carImage {
+  width: 100%;
+  height: 100%;
+}
+
+.statusBadge {
+  position: absolute;
+  top: $spacing-sm;
+  left: $spacing-sm;
+  padding: 6rpx 16rpx;
+  border-radius: $radius-xs;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  color: $color-text-white;
+}
+
+.reserved {
+  background: $color-warning;
+}
+
+.sold {
+  background: $color-text-tertiary;
+}
+
+.tagsWrap {
+  position: absolute;
+  bottom: $spacing-sm;
+  left: $spacing-sm;
+  right: $spacing-sm;
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-xs;
+}
+
+.tag {
+  padding: 4rpx 12rpx;
+  border-radius: $radius-xs;
+  background: rgba(30, 111, 255, 0.9);
+  color: $color-text-white;
+  font-size: $font-size-xs;
+}
+
+.content {
+  padding: $spacing-lg;
+}
+
+.title {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  margin-bottom: $spacing-sm;
+  @include text-ellipsis;
+}
+
+.infoRow {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  margin-bottom: $spacing-md;
+}
+
+.infoItem {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+}
+
+.dot {
+  color: $color-text-tertiary;
+  font-size: $font-size-xs;
+}
+
+.bottomRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.priceWrap {
+  display: flex;
+  align-items: baseline;
+  gap: $spacing-xs;
+}
+
+.price {
+  font-size: $font-size-xxl;
+  font-weight: $font-weight-bold;
+  color: $color-price;
+}
+
+.priceUnit {
+  font-size: $font-size-sm;
+  color: $color-price;
+  font-weight: $font-weight-medium;
+}
+
+.originalPrice {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  text-decoration: line-through;
+}
+
+.location {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  display: flex;
+  align-items: center;
+  gap: 4rpx;
+}

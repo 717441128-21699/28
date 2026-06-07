@@ -1,0 +1,264 @@
+@use '@/styles/variables.scss' as *;
+
+.page {
+  min-height: 100vh;
+  padding: $spacing-md $page-padding 200rpx;
+}
+
+.heroCard {
+  background: linear-gradient(135deg, #FA8C16 0%, #FFA940 100%);
+  border-radius: $radius-xl;
+  padding: $spacing-xl;
+  color: $color-text-white;
+  margin-bottom: $spacing-md;
+}
+
+.heroTitle {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  margin-bottom: $spacing-xs;
+}
+
+.heroSubtitle {
+  font-size: $font-size-sm;
+  opacity: 0.9;
+  margin-bottom: $spacing-lg;
+}
+
+.stepsRow {
+  display: flex;
+  justify-content: space-between;
+}
+
+.stepItem {
+  flex: 1;
+  text-align: center;
+  position: relative;
+}
+
+.stepIcon {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto $spacing-xs;
+  font-size: 28rpx;
+  font-weight: $font-weight-bold;
+}
+
+.stepLabel {
+  font-size: $font-size-xs;
+  opacity: 0.95;
+}
+
+.stepConnector {
+  position: absolute;
+  top: 32rpx;
+  left: 60%;
+  right: -40%;
+  height: 2rpx;
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.formCard {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-md;
+  box-shadow: $shadow-card;
+}
+
+.sectionTitle {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  margin-bottom: $spacing-md;
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+}
+
+.formItem {
+  margin-bottom: $spacing-md;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.formLabel {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  margin-bottom: $spacing-sm;
+}
+
+.required {
+  color: $color-price;
+  margin-right: 4rpx;
+}
+
+.formInput {
+  width: 100%;
+  height: $button-height-md;
+  background: $color-bg-page;
+  border-radius: $radius-md;
+  padding: 0 $spacing-md;
+  font-size: $font-size-md;
+  color: $color-text-primary;
+  box-sizing: border-box;
+}
+
+.formTextarea {
+  width: 100%;
+  min-height: 200rpx;
+  background: $color-bg-page;
+  border-radius: $radius-md;
+  padding: $spacing-md;
+  font-size: $font-size-md;
+  color: $color-text-primary;
+  box-sizing: border-box;
+}
+
+.uploadArea {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-sm;
+}
+
+.uploadItem {
+  width: 180rpx;
+  height: 180rpx;
+  border-radius: $radius-md;
+  overflow: hidden;
+  position: relative;
+}
+
+.uploadImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.uploadBtn {
+  width: 180rpx;
+  height: 180rpx;
+  border-radius: $radius-md;
+  background: $color-bg-page;
+  border: 2rpx dashed $color-divider;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-xs;
+}
+
+.uploadIcon {
+  font-size: 48rpx;
+  color: $color-text-tertiary;
+}
+
+.uploadText {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.claimList {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  box-shadow: $shadow-card;
+  margin-bottom: $spacing-md;
+}
+
+.claimItem {
+  padding: $spacing-md 0;
+  border-bottom: 1rpx solid $color-divider;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.claimHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $spacing-sm;
+}
+
+.claimTitle {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.statusTag {
+  padding: 4rpx 16rpx;
+  border-radius: $radius-xs;
+  font-size: $font-size-xs;
+
+  &.pending {
+    background: rgba(30, 111, 255, 0.1);
+    color: $color-primary;
+  }
+
+  &.reviewing,
+  &.manual {
+    background: rgba(250, 140, 22, 0.1);
+    color: #FA8C16;
+  }
+
+  &.approved,
+  &.paid {
+    background: rgba(0, 180, 42, 0.1);
+    color: $color-success;
+  }
+
+  &.rejected {
+    background: rgba(255, 77, 79, 0.1);
+    color: $color-price;
+  }
+}
+
+.claimDesc {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  margin-bottom: $spacing-sm;
+  line-height: 1.5;
+}
+
+.claimMeta {
+  display: flex;
+  justify-content: space-between;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.bottomBar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: $spacing-md $page-padding;
+  padding-bottom: calc(env(safe-area-inset-bottom) + $spacing-md);
+  background: $color-bg-card;
+  box-shadow: $shadow-float;
+}
+
+.submitBtn {
+  @include button-reset;
+  width: 100%;
+  height: $button-height-lg;
+  background: linear-gradient(135deg, #FA8C16 0%, #FFA940 100%);
+  border-radius: $radius-button;
+  font-size: $font-size-md;
+  color: $color-text-white;
+  font-weight: $font-weight-semibold;
+
+  &:active {
+    opacity: 0.9;
+  }
+}
