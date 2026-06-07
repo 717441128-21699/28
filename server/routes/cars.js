@@ -111,7 +111,7 @@ router.get('/', async (req, res) => {
 router.get('/recommend', async (req, res) => {
   try {
     const db = getDB();
-    const cars = (await db.prepare('SELECT * FROM cars WHERE status = \'available\' ORDER BY RAND() LIMIT 8').all()).map(car => ({
+    const cars = (await db.prepare('SELECT * FROM cars WHERE status = \'available\' ORDER BY RANDOM() LIMIT 8').all()).map(car => ({
       ...car,
       images: JSON.parse(car.images || '[]'),
       tags: car.tags ? JSON.parse(car.tags) : []

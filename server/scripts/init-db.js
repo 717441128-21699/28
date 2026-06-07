@@ -83,7 +83,7 @@ const { v4: uuidv4 } = require('uuid');
     const exists = await db.prepare('SELECT id FROM cars WHERE title = ?').get(c.title);
     if (!exists) {
       await db.prepare(
-        `INSERT INTO cars (id, title, brand, model, year, price, original_price, mileage, color, gearbox, displacement, fuel_type, location, images, seller_id, status, estimated_price_min, estimated_price_max, market_average, same_model_count, deal_rate, overall_score, \`condition\`, tags)
+        `INSERT INTO cars (id, title, brand, model, year, price, original_price, mileage, color, gearbox, displacement, fuel_type, location, images, seller_id, status, estimated_price_min, estimated_price_max, market_average, same_model_count, deal_rate, overall_score, "condition", tags)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       ).run(
         carId, c.title, c.brand, c.model, c.year, c.price, c.original_price, c.mileage,

@@ -1,204 +1,85 @@
 require('dotenv').config();
-const fs = require('fs');
-const path = require('path');
+const { Pool } = require('pg');
 
 let db = null;
 let pool = null;
 
+function convertPlaceholders(sql) {
+  let i = 0;
+  return sql.replace(/\?/g, () => `$${++i}`);
+}
+
 function createStatementWrapper(sql) {
+  const pgSql = convertPlaceholders(sql);
   return {
     async get(...params) {
-      const [rows] = await pool.execute(sql, params);
-      return rows.length > 0 ? rows[0] : undefined;
+      const res = await pool.query(pgSql, params);
+      return res.rows.length > 0 ? res.rows[0] : undefined;
     },
     async all(...params) {
-      const [rows] = await pool.execute(sql, params);
-      return rows;
+      const res = await pool.query(pgSql, params);
+      return res.rows;
     },
     async run(...params) {
-      const [result] = await pool.execute(sql, params);
+      const returningSql = /^INSERT\s/i.test(sql.trim()) && !/RETURNING\s/i.test(sql)
+        ? `${pgSql} RETURNING id`
+        : pgSql;
+      const res = await pool.query(returningSql, params);
+      const insertId = res.rows && res.rows[0] ? res.rows[0].id : null;
       return {
-        changes: result.affectedRows || 0,
-        insertId: result.insertId || null,
+        changes: res.rowCount || 0,
+        insertId,
       };
     },
   };
 }
 
-async function initSQLiteFallback() {
-  console.log('⚠️  MySQL 连接失败，启动 SQLite 兼容模式（仅用于开发）');
-  const initSqlJs = require('sql.js');
-  const SQL = await initSqlJs();
-  const dbPath = path.join(__dirname, 'data.sqlite');
-
-  if (fs.existsSync(dbPath)) {
-    const fileBuffer = fs.readFileSync(dbPath);
-    db = new SQL.Database(fileBuffer);
-  } else {
-    db = new SQL.Database();
-  }
-
-  function save() {
-    const data = db.export();
-    const buffer = Buffer.from(data);
-    fs.writeFileSync(dbPath, buffer);
-  }
-  db._save = save;
-
-  const originalPrepare = db.prepare.bind(db);
-  db.prepare = function (stmtSql) {
-    const stmt = originalPrepare(stmtSql);
-    return {
-      get(...params) {
-        if (params.length > 0) stmt.bind(params);
-        if (stmt.step()) {
-          const row = stmt.getAsObject();
-          stmt.reset();
-          return row;
-        }
-        stmt.reset();
-        return undefined;
-      },
-      all(...params) {
-        const rows = [];
-        if (params.length > 0) stmt.bind(params);
-        while (stmt.step()) {
-          rows.push(stmt.getAsObject());
-        }
-        stmt.reset();
-        return rows;
-      },
-      run(...params) {
-        if (params.length > 0) stmt.bind(params);
-        stmt.step();
-        stmt.reset();
-        if (db._save) db._save();
-        return { changes: db.getRowsModified ? db.getRowsModified() : 1 };
-      },
-    };
-  };
-
-  const originalExec = db.exec.bind(db);
-  db.exec = function (execSql) {
-    originalExec(execSql);
-    if (db._save) db._save();
-  };
-
-  db.isSQLite = true;
-  db.isMySQL = false;
-
-  await createSQLiteTables();
-  console.log('✅ SQLite 兼容模式初始化完成（data.sqlite）');
-  return db;
-}
-
-async function createSQLiteTables() {
-  const createTablesSQL = `
-    CREATE TABLE IF NOT EXISTS users (
-      id TEXT PRIMARY KEY, phone TEXT UNIQUE NOT NULL, password TEXT, nickname TEXT,
-      avatar TEXT DEFAULT 'https://picsum.photos/seed/default/100/100',
-      credit_score INTEGER DEFAULT 650, vip_level TEXT DEFAULT 'normal',
-      vip_exp INTEGER DEFAULT 0, total_deals INTEGER DEFAULT 0,
-      total_spent REAL DEFAULT 0, is_admin INTEGER DEFAULT 0,
-      created_at TEXT DEFAULT (datetime('now')), updated_at TEXT DEFAULT (datetime('now'))
-    );
-    CREATE TABLE IF NOT EXISTS cars (
-      id TEXT PRIMARY KEY, title TEXT NOT NULL, brand TEXT NOT NULL, model TEXT NOT NULL,
-      year INTEGER NOT NULL, price REAL NOT NULL, original_price REAL, mileage REAL NOT NULL,
-      color TEXT, gearbox TEXT, displacement TEXT, fuel_type TEXT, location TEXT,
-      images TEXT, seller_id TEXT NOT NULL, status TEXT DEFAULT 'available',
-      estimated_price_min REAL, estimated_price_max REAL, market_average REAL,
-      same_model_count INTEGER DEFAULT 0, deal_rate REAL DEFAULT 0,
-      overall_score INTEGER DEFAULT 85, condition TEXT DEFAULT 'good', tags TEXT,
-      created_at TEXT DEFAULT (datetime('now')), updated_at TEXT DEFAULT (datetime('now'))
-    );
-    CREATE TABLE IF NOT EXISTS appointments (
-      id TEXT PRIMARY KEY, car_id TEXT NOT NULL, buyer_id TEXT NOT NULL, seller_id TEXT NOT NULL,
-      time TEXT NOT NULL, location TEXT NOT NULL, status TEXT DEFAULT 'pending',
-      buyer_intent INTEGER DEFAULT 0, created_at TEXT DEFAULT (datetime('now'))
-    );
-    CREATE TABLE IF NOT EXISTS orders (
-      id TEXT PRIMARY KEY, car_id TEXT NOT NULL, buyer_id TEXT NOT NULL, seller_id TEXT NOT NULL,
-      deposit REAL NOT NULL, total_price REAL NOT NULL, commission REAL NOT NULL,
-      status TEXT DEFAULT 'pending', appointment_time TEXT, appointment_location TEXT,
-      contract_signed INTEGER DEFAULT 0, transfer_confirmed INTEGER DEFAULT 0,
-      created_at TEXT DEFAULT (datetime('now')), updated_at TEXT DEFAULT (datetime('now'))
-    );
-    CREATE TABLE IF NOT EXISTS loans (
-      id TEXT PRIMARY KEY, user_id TEXT NOT NULL, car_id TEXT, amount REAL NOT NULL,
-      down_payment REAL NOT NULL, periods INTEGER NOT NULL, monthly_payment REAL NOT NULL,
-      interest_rate REAL DEFAULT 4.5, status TEXT DEFAULT 'pending',
-      next_repay_date TEXT, created_at TEXT DEFAULT (datetime('now'))
-    );
-    CREATE TABLE IF NOT EXISTS insurances (
-      id TEXT PRIMARY KEY, user_id TEXT NOT NULL, car_id TEXT, type TEXT NOT NULL,
-      type_name TEXT NOT NULL, premium REAL NOT NULL, coverage REAL NOT NULL,
-      duration INTEGER DEFAULT 12, status TEXT DEFAULT 'active',
-      effective_date TEXT NOT NULL, expire_date TEXT NOT NULL,
-      created_at TEXT DEFAULT (datetime('now'))
-    );
-    CREATE TABLE IF NOT EXISTS claims (
-      id TEXT PRIMARY KEY, insurance_id TEXT NOT NULL, user_id TEXT NOT NULL,
-      amount REAL NOT NULL, description TEXT NOT NULL, evidence TEXT,
-      status TEXT DEFAULT 'pending', review_note TEXT,
-      created_at TEXT DEFAULT (datetime('now')), reviewed_at TEXT
-    );
-    CREATE TABLE IF NOT EXISTS disputes (
-      id TEXT PRIMARY KEY, order_id TEXT NOT NULL, initiator_id TEXT NOT NULL,
-      respondent_id TEXT NOT NULL, reason TEXT NOT NULL, evidence TEXT,
-      status TEXT DEFAULT 'pending', handler TEXT, handler_note TEXT,
-      escalated INTEGER DEFAULT 0, created_at TEXT DEFAULT (datetime('now')), resolved_at TEXT
-    );
-    CREATE TABLE IF NOT EXISTS messages (
-      id TEXT PRIMARY KEY, user_id TEXT NOT NULL, type TEXT NOT NULL,
-      title TEXT NOT NULL, content TEXT NOT NULL, related_id TEXT,
-      is_read INTEGER DEFAULT 0, created_at TEXT DEFAULT (datetime('now'))
-    );
-    CREATE TABLE IF NOT EXISTS exp_records (
-      id TEXT PRIMARY KEY, user_id TEXT NOT NULL, exp INTEGER NOT NULL,
-      reason TEXT NOT NULL, created_at TEXT DEFAULT (datetime('now'))
-    );
-    CREATE TABLE IF NOT EXISTS brands (
-      id TEXT PRIMARY KEY, name TEXT NOT NULL, logo TEXT, count INTEGER DEFAULT 0
-    );
-  `;
-  db.exec(createTablesSQL);
-}
-
-async function initMySQL() {
-  const mysql = require('mysql2/promise');
-
+async function initPostgres() {
   const config = {
     host: process.env.DB_HOST || '127.0.0.1',
-    port: parseInt(process.env.DB_PORT || '3306'),
-    user: process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD || '',
-    waitForConnections: true,
-    connectionLimit: 10,
-    queueLimit: 0,
-    dateStrings: true,
+    port: parseInt(process.env.DB_PORT || '5432'),
+    user: process.env.DB_USER || 'postgres',
+    password: process.env.DB_PASSWORD || 'cheyipai123',
+    database: 'postgres',
+    max: 20,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 5000,
   };
 
-  let tempConn = null;
+  const dbName = process.env.DB_NAME || 'cheyipai';
+
+  let tempPool = null;
   try {
-    tempConn = await mysql.createConnection(config);
-    const dbName = process.env.DB_NAME || 'cheyipai';
-    await tempConn.execute(
-      `CREATE DATABASE IF NOT EXISTS \`${dbName}\` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`
+    tempPool = new Pool(config);
+    await tempPool.query('SELECT 1');
+    console.log(`✅ 连接 PostgreSQL 成功（${config.host}:${config.port}）`);
+
+    const check = await tempPool.query(
+      "SELECT 1 FROM pg_database WHERE datname = $1",
+      [dbName]
     );
-    await tempConn.end();
-  } catch (err) {
-    if (tempConn) { try { await tempConn.end(); } catch (e) {} }
-    console.warn('⚠️  无法连接到 MySQL:', err.message);
-    if (process.env.USE_SQLITE_FALLBACK === 'true') {
-      return initSQLiteFallback();
+    if (check.rows.length === 0) {
+      await tempPool.query(`CREATE DATABASE "${dbName}" ENCODING 'UTF8'`);
+      console.log(`✅ 创建数据库 ${dbName}`);
     }
-    throw err;
+    await tempPool.end();
+  } catch (err) {
+    if (tempPool) { try { await tempPool.end(); } catch (e) {} }
+    console.error('❌ 无法连接到 PostgreSQL 数据库，启动失败：');
+    console.error('   Host:', config.host, 'Port:', config.port, 'User:', config.user);
+    console.error('   错误详情:', err.message);
+    console.error('');
+    console.error('💡 请检查：');
+    console.error('   1. PostgreSQL 是否已启动？运行：net start postgresql-x64-16');
+    console.error('   2. 连接配置是否正确？查看 server/.env');
+    console.error('   3. 数据库用户密码是否正确？默认密码 cheyipai123');
+    console.error('');
+    process.exit(1);
   }
 
-  pool = mysql.createPool({
+  pool = new Pool({
     ...config,
-    database: process.env.DB_NAME || 'cheyipai',
+    database: dbName,
   });
 
   db = {
@@ -214,17 +95,18 @@ async function initMySQL() {
         await pool.query(stmt);
       }
     },
-    isMySQL: true,
+    isPostgres: true,
+    isMySQL: false,
     isSQLite: false,
     pool,
   };
 
-  await createMySQLTables();
-  console.log(`✅ MySQL 数据库初始化完成（${process.env.DB_NAME || 'cheyipai'}）`);
+  await createTables();
+  console.log(`✅ PostgreSQL 数据库 ${dbName} 初始化完成，表结构就绪`);
   return db;
 }
 
-async function createMySQLTables() {
+async function createTables() {
   const createTablesSQL = `
     CREATE TABLE IF NOT EXISTS users (
       id VARCHAR(64) PRIMARY KEY,
@@ -232,22 +114,22 @@ async function createMySQLTables() {
       password VARCHAR(255),
       nickname VARCHAR(100),
       avatar VARCHAR(500) DEFAULT 'https://picsum.photos/seed/default/100/100',
-      credit_score INT DEFAULT 650,
+      credit_score INTEGER DEFAULT 650,
       vip_level VARCHAR(20) DEFAULT 'normal',
-      vip_exp INT DEFAULT 0,
-      total_deals INT DEFAULT 0,
+      vip_exp INTEGER DEFAULT 0,
+      total_deals INTEGER DEFAULT 0,
       total_spent DECIMAL(12,2) DEFAULT 0,
-      is_admin TINYINT DEFAULT 0,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+      is_admin SMALLINT DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
 
     CREATE TABLE IF NOT EXISTS cars (
       id VARCHAR(64) PRIMARY KEY,
       title VARCHAR(200) NOT NULL,
       brand VARCHAR(50) NOT NULL,
       model VARCHAR(50) NOT NULL,
-      year INT NOT NULL,
+      year INTEGER NOT NULL,
       price DECIMAL(12,2) NOT NULL,
       original_price DECIMAL(12,2),
       mileage DECIMAL(8,2) NOT NULL,
@@ -262,18 +144,18 @@ async function createMySQLTables() {
       estimated_price_min DECIMAL(12,2),
       estimated_price_max DECIMAL(12,2),
       market_average DECIMAL(12,2),
-      same_model_count INT DEFAULT 0,
+      same_model_count INTEGER DEFAULT 0,
       deal_rate DECIMAL(5,2) DEFAULT 0,
-      overall_score INT DEFAULT 85,
-      \`condition\` VARCHAR(20) DEFAULT 'good',
+      overall_score INTEGER DEFAULT 85,
+      condition VARCHAR(20) DEFAULT 'good',
       tags TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-      INDEX idx_brand (brand),
-      INDEX idx_status (status),
-      INDEX idx_seller (seller_id),
-      INDEX idx_price (price)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_cars_brand ON cars(brand);
+    CREATE INDEX IF NOT EXISTS idx_cars_status ON cars(status);
+    CREATE INDEX IF NOT EXISTS idx_cars_seller ON cars(seller_id);
+    CREATE INDEX IF NOT EXISTS idx_cars_price ON cars(price);
 
     CREATE TABLE IF NOT EXISTS appointments (
       id VARCHAR(64) PRIMARY KEY,
@@ -283,12 +165,12 @@ async function createMySQLTables() {
       time VARCHAR(50) NOT NULL,
       location VARCHAR(200) NOT NULL,
       status VARCHAR(30) DEFAULT 'pending',
-      buyer_intent TINYINT DEFAULT 0,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      INDEX idx_buyer (buyer_id),
-      INDEX idx_seller (seller_id),
-      INDEX idx_car (car_id)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+      buyer_intent SMALLINT DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_appointments_buyer ON appointments(buyer_id);
+    CREATE INDEX IF NOT EXISTS idx_appointments_seller ON appointments(seller_id);
+    CREATE INDEX IF NOT EXISTS idx_appointments_car ON appointments(car_id);
 
     CREATE TABLE IF NOT EXISTS orders (
       id VARCHAR(64) PRIMARY KEY,
@@ -301,14 +183,14 @@ async function createMySQLTables() {
       status VARCHAR(30) DEFAULT 'pending',
       appointment_time VARCHAR(50),
       appointment_location VARCHAR(200),
-      contract_signed TINYINT DEFAULT 0,
-      transfer_confirmed TINYINT DEFAULT 0,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-      INDEX idx_buyer (buyer_id),
-      INDEX idx_seller (seller_id),
-      INDEX idx_status (status)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+      contract_signed SMALLINT DEFAULT 0,
+      transfer_confirmed SMALLINT DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_orders_buyer ON orders(buyer_id);
+    CREATE INDEX IF NOT EXISTS idx_orders_seller ON orders(seller_id);
+    CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
 
     CREATE TABLE IF NOT EXISTS loans (
       id VARCHAR(64) PRIMARY KEY,
@@ -316,15 +198,15 @@ async function createMySQLTables() {
       car_id VARCHAR(64),
       amount DECIMAL(12,2) NOT NULL,
       down_payment DECIMAL(12,2) NOT NULL,
-      periods INT NOT NULL,
+      periods INTEGER NOT NULL,
       monthly_payment DECIMAL(12,2) NOT NULL,
       interest_rate DECIMAL(5,2) DEFAULT 4.5,
       status VARCHAR(30) DEFAULT 'pending',
       next_repay_date VARCHAR(20),
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      INDEX idx_user (user_id),
-      INDEX idx_status (status)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_loans_user ON loans(user_id);
+    CREATE INDEX IF NOT EXISTS idx_loans_status ON loans(status);
 
     CREATE TABLE IF NOT EXISTS insurances (
       id VARCHAR(64) PRIMARY KEY,
@@ -334,13 +216,13 @@ async function createMySQLTables() {
       type_name VARCHAR(100) NOT NULL,
       premium DECIMAL(12,2) NOT NULL,
       coverage DECIMAL(12,2) NOT NULL,
-      duration INT DEFAULT 12,
+      duration INTEGER DEFAULT 12,
       status VARCHAR(30) DEFAULT 'active',
       effective_date VARCHAR(20) NOT NULL,
       expire_date VARCHAR(20) NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      INDEX idx_user (user_id)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_insurances_user ON insurances(user_id);
 
     CREATE TABLE IF NOT EXISTS claims (
       id VARCHAR(64) PRIMARY KEY,
@@ -351,11 +233,11 @@ async function createMySQLTables() {
       evidence TEXT,
       status VARCHAR(30) DEFAULT 'pending',
       review_note TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      reviewed_at DATETIME,
-      INDEX idx_user (user_id),
-      INDEX idx_insurance (insurance_id)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      reviewed_at TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_claims_user ON claims(user_id);
+    CREATE INDEX IF NOT EXISTS idx_claims_insurance ON claims(insurance_id);
 
     CREATE TABLE IF NOT EXISTS disputes (
       id VARCHAR(64) PRIMARY KEY,
@@ -367,12 +249,12 @@ async function createMySQLTables() {
       status VARCHAR(30) DEFAULT 'pending',
       handler VARCHAR(64),
       handler_note TEXT,
-      escalated TINYINT DEFAULT 0,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      resolved_at DATETIME,
-      INDEX idx_status (status),
-      INDEX idx_order (order_id)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+      escalated SMALLINT DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      resolved_at TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_disputes_status ON disputes(status);
+    CREATE INDEX IF NOT EXISTS idx_disputes_order ON disputes(order_id);
 
     CREATE TABLE IF NOT EXISTS messages (
       id VARCHAR(64) PRIMARY KEY,
@@ -381,33 +263,33 @@ async function createMySQLTables() {
       title VARCHAR(200) NOT NULL,
       content TEXT NOT NULL,
       related_id VARCHAR(64),
-      is_read TINYINT DEFAULT 0,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      INDEX idx_user (user_id),
-      INDEX idx_read (is_read)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+      is_read SMALLINT DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_messages_user ON messages(user_id);
+    CREATE INDEX IF NOT EXISTS idx_messages_read ON messages(is_read);
 
     CREATE TABLE IF NOT EXISTS exp_records (
       id VARCHAR(64) PRIMARY KEY,
       user_id VARCHAR(64) NOT NULL,
-      exp INT NOT NULL,
+      exp INTEGER NOT NULL,
       reason VARCHAR(200) NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      INDEX idx_user (user_id)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_exp_records_user ON exp_records(user_id);
 
     CREATE TABLE IF NOT EXISTS brands (
       id VARCHAR(64) PRIMARY KEY,
       name VARCHAR(50) NOT NULL,
       logo VARCHAR(500),
-      count INT DEFAULT 0
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+      count INTEGER DEFAULT 0
+    );
   `;
   await db.exec(createTablesSQL);
 }
 
 async function initDB() {
-  return initMySQL();
+  return initPostgres();
 }
 
 module.exports = { initDB, getDB: () => db };
